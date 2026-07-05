@@ -96,6 +96,106 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <style>
+        /* ===== Overlay Galaksi Cinta (dibuka/ditutup dengan gestur 👌) ===== */
+        #galaxilove-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            background: black;
+        }
+        #galaxilove-overlay .webgl { position: fixed; top: 0; left: 0; outline: none; }
+        #gl-titulo-corazon {
+            position: fixed;
+            top: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffd7ef;
+            font-family: Arial, sans-serif;
+            font-size: clamp(1.2rem, 2.8vw, 2rem);
+            font-weight: bold;
+            text-shadow: 0 0 10px #ff3ea5, 0 0 24px #ff3ea5;
+            z-index: 20;
+            pointer-events: none;
+        }
+        #gl-hint {
+            position: fixed;
+            bottom: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffd7ef;
+            font-family: Arial, sans-serif;
+            font-size: 15px;
+            text-shadow: 0 0 8px #ff3ea5;
+            z-index: 20;
+            pointer-events: none;
+            text-align: center;
+        }
+        #gl-close-btn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 25;
+            background: rgba(255, 77, 166, 0.85);
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            width: 38px;
+            height: 38px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #gl-modal-carta {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(3px);
+            z-index: 30;
+        }
+        #gl-modal-carta.visible { display: flex; }
+        #gl-modal-carta .carta {
+            width: min(86vw, 420px);
+            background: linear-gradient(160deg, #fff8fb 0%, #ffe9f4 100%);
+            border: 2px solid #ffc7e4;
+            border-radius: 18px;
+            padding: 22px 20px 16px;
+            box-shadow: 0 12px 36px rgba(255, 20, 147, 0.4);
+            color: #8a235f;
+            font-family: 'Georgia', serif;
+            text-align: center;
+            position: relative;
+            animation: cartaAparece 0.28s ease-out;
+        }
+        #gl-modal-carta .carta h3 { font-size: 1.15rem; margin-bottom: 10px; }
+        #gl-mensaje-romantico {
+            font-size: clamp(1.05rem, 2.5vw, 1.35rem);
+            line-height: 1.5;
+            color: #b01867;
+            text-shadow: 0 0 10px rgba(255, 70, 150, 0.2);
+        }
+        #gl-cerrar-carta {
+            margin-top: 14px;
+            border: none;
+            border-radius: 999px;
+            background: #ff4da6;
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: bold;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        @keyframes cartaAparece {
+            from { opacity: 0; transform: scale(0.9) translateY(12px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+    </style>
 </head>
 <body>
 
@@ -111,6 +211,24 @@
     <video id="camera-feed" autoplay playsinline style="display: none;"></video>
     <div id="canvas-container"></div>
     <div id="love-caption" class="love-caption"></div>
+
+    <!-- ===== Overlay Galaksi Cinta - dibuka/ditutup dengan gestur OK Sign 👌 ===== -->
+    <div id="galaxilove-overlay">
+        <canvas class="webgl" id="gl-canvas"></canvas>
+        <div id="gl-titulo-corazon">Tekan hatinya</div>
+        <div id="gl-hint">Buat gestur 👌 lagi untuk kembali</div>
+        <button id="gl-close-btn" title="Tutup">✕</button>
+        <div id="gl-modal-carta">
+            <div class="carta">
+                <h3>Untukmu daftar penting</h3>
+                <p id="gl-mensaje-romantico"></p>
+                <button id="gl-cerrar-carta">Tutup</button>
+            </div>
+        </div>
+        <audio id="gl-musica-fondo" loop>
+            <source src="cintanya akuu.mp3" type="audio/mpeg">
+        </audio>
+    </div>
 
     <script>
         // ==========================================
@@ -131,9 +249,13 @@
             4: "BENTUK HATI (Tangan Mengepal)",
             5: "SELY 🫰 (Finger Heart)",
             7: "DNA HELIX 🧬 (Rock Sign)",
-            8: "BUKET MAWAR 🌹 (OK Sign)",
             9: "ZEN & CINTA 🤟 (I Love You Sign)"
         };
+
+        // Gestur OK Sign 👌 sekarang dipakai untuk toggle overlay "Galaksi Cinta"
+        let lastOkSignActive = false;
+        let lastOkToggleTime = 0;
+        const OK_TOGGLE_COOLDOWN = 1500; // ms, biar tidak toggle berkali-kali per detik
 
         // ==========================================
         // SETUP THREE.JS (RENDERER 3D)
@@ -195,8 +317,6 @@
         const posSely = new Float32Array(NUM_PARTICLES * 3);
         const posGalaxy = new Float32Array(NUM_PARTICLES * 3);
         const posDNA = new Float32Array(NUM_PARTICLES * 3);
-        const posRose = new Float32Array(NUM_PARTICLES * 3);
-        const ROSE_STEM_COUNT = Math.floor(NUM_PARTICLES * 0.15);
         const posPray = new Float32Array(NUM_PARTICLES * 3); // Mode 9: ZEN + HATI + SELY (vertikal)
         const PRAY_ZEN_COUNT = Math.floor(NUM_PARTICLES * 0.34);
         const PRAY_HEART_COUNT = Math.floor(NUM_PARTICLES * 0.33);
@@ -316,31 +436,6 @@
                 }
             }
 
-            // BUKET MAWAR (Mode 8) - 3 tangkai mawar berdampingan
-            const numRoses = 3;
-            const roseOffsets = [-1.1, 0, 1.1];
-            for (let i = 0; i < NUM_PARTICLES; i++) {
-                let roseIdx = i % numRoses;
-                if (i < ROSE_STEM_COUNT) {
-                    // Batang & daun hijau di bagian bawah
-                    let tt = Math.random();
-                    posRose[i*3]   = roseOffsets[roseIdx] + (Math.random() - 0.5) * 0.08;
-                    posRose[i*3+1] = -1.0 - tt * 1.8;
-                    posRose[i*3+2] = (Math.random() - 0.5) * 0.08;
-                } else {
-                    // Kelopak: beberapa lapis kurva "rose curve" bertumpuk membentuk bunga
-                    let layer = Math.floor(Math.random() * 4); // 0 (dalam) - 3 (luar)
-                    let theta = Math.random() * Math.PI * 2;
-                    let rMax = 0.32 + layer * 0.14;
-                    let r = rMax * Math.abs(Math.cos(2 * theta + layer));
-                    let localX = r * Math.cos(theta);
-                    let localY = r * Math.sin(theta) * 0.9;
-                    posRose[i*3]   = roseOffsets[roseIdx] + localX + (Math.random() - 0.5) * 0.04;
-                    posRose[i*3+1] = 0.6 + localY * 0.8 + layer * 0.04 + (Math.random() - 0.5) * 0.04;
-                    posRose[i*3+2] = (layer - 1.5) * 0.09 + (Math.random() - 0.5) * 0.04;
-                }
-            }
-
             // ZEN + HATI + SELY (Mode 9) - disusun VERTIKAL: teks "ZEN" (atas),
             // bentuk hati (tengah), lalu teks "SELY" (bawah)
             const zenTextPoints = [];
@@ -437,10 +532,17 @@
                 return 5; 
             }
 
-            // 2. Cek Mode BUKET MAWAR 🌹 (OK Sign: Jempol & Telunjuk berdekatan, 3 jari lain berdiri)
+            // 2. Cek Mode OK Sign 👌 (Jempol & Telunjuk berdekatan, 3 jari lain berdiri)
+            //    Dipakai untuk toggle overlay "Galaksi Cinta" (buka/tutup dengan gestur yang sama)
             if (distHeart < 0.08 && fingersUp[1] && fingersUp[2] && fingersUp[3]) {
-                return 8;
+                if (!lastOkSignActive && (Date.now() - lastOkToggleTime > OK_TOGGLE_COOLDOWN)) {
+                    if (typeof toggleGalaxiloveOverlay === 'function') toggleGalaxiloveOverlay();
+                    lastOkToggleTime = Date.now();
+                }
+                lastOkSignActive = true;
+                return 1;
             }
+            lastOkSignActive = false;
 
             // 3. Cek Mode ZEN & CINTA 🤟 (Sign ILY: Jempol + Telunjuk + Kelingking berdiri,
             //    Tengah & Manis menekuk, dan jempol terentang keluar dari telapak)
@@ -489,7 +591,6 @@
         const loveCaptions = {
             4: "Untuk kamu, dengan sepenuh hati 💖",
             5: "Kamu spesial banget buat aku 🫰",
-            8: "Sebuket mawar untuk cewek terbaik 🌹",
             9: "aku mau kamu jadi milik ku selamanya 🤟"
         };
         function updateCaption(mode) {
@@ -580,7 +681,6 @@
             else if (currentMode === 4) { targetPosArray = posHeart; rotationAngle += 0.015; }
             else if (currentMode === 5) { targetPosArray = posSely; rotationAngle = 0; }
             else if (currentMode === 7) { targetPosArray = posDNA; rotationAngle += 0.02; }
-            else if (currentMode === 8) { targetPosArray = posRose; rotationAngle += 0.008; }
             else if (currentMode === 9) { targetPosArray = posPray; rotationAngle = 0; }
 
             const posAttr = geometry.attributes.position.array;
@@ -605,15 +705,6 @@
                     if (i % 10 === 0) { colAttr[i*3] = 1.0; colAttr[i*3+1] = 1.0; colAttr[i*3+2] = 1.0; }
                     else if (i % 2 === 0) { colAttr[i*3] = 0.0; colAttr[i*3+1] = 1.0; colAttr[i*3+2] = 0.9; }
                     else { colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.0; colAttr[i*3+2] = 0.6; }
-                } else if (currentMode === 8) { // Buket Mawar - batang hijau, kelopak merah muda ke merah tua
-                    if (i < ROSE_STEM_COUNT) {
-                        colAttr[i*3] = 0.1; colAttr[i*3+1] = 0.55; colAttr[i*3+2] = 0.2;
-                    } else {
-                        let shade = (i % 5) / 5;
-                        colAttr[i*3] = 0.9 + shade * 0.1;
-                        colAttr[i*3+1] = 0.08 + shade * 0.18;
-                        colAttr[i*3+2] = 0.3 + shade * 0.3;
-                    }
                 } else if (currentMode === 9) { // ZEN (emas lembut) + HATI (pink) + SELY (putih keunguan)
                     if (i < PRAY_ZEN_COUNT) {
                         colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.85; colAttr[i*3+2] = 0.55;
@@ -635,7 +726,7 @@
             geometry.attributes.position.needsUpdate = true;
             geometry.attributes.color.needsUpdate = true;
 
-            if ([2, 3, 4, 5, 7, 8, 9].includes(currentMode)) {
+            if ([2, 3, 4, 5, 7, 9].includes(currentMode)) {
                 particleSystem.position.set(handCurrent.x, handCurrent.y, handCurrent.z);
                 if (currentMode === 2) {
                     particleSystem.rotation.set(0.3, rotationAngle, 0); // sedikit miring seperti galaksi asli
@@ -663,6 +754,332 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
+    </script>
+
+    <!-- ============================================================
+         GALAKSI CINTA - overlay yang dibuka/ditutup dengan gestur 👌
+         Dibungkus IIFE supaya variabel (scene, camera, dll) tidak
+         bentrok dengan script NebulaHeart 3D di atas.
+    ============================================================ -->
+    <script>
+    (function() {
+        let initialized = false;
+        let active = false;
+        let animationId = null;
+
+        let glScene, glCamera, glRenderer, glControls, glClock;
+        let galaxy, heart, heartModel;
+        let textoSprites = [], fotoSprites = [];
+        let raycaster, mouse;
+
+        const overlay = document.getElementById('galaxilove-overlay');
+        const canvasEl = document.getElementById('gl-canvas');
+        const modalCarta = document.getElementById('gl-modal-carta');
+        const mensajeRomantico = document.getElementById('gl-mensaje-romantico');
+        const cerrarCarta = document.getElementById('gl-cerrar-carta');
+        const closeBtn = document.getElementById('gl-close-btn');
+        const musica = document.getElementById('gl-musica-fondo');
+
+        const ORBIT_SYNC_SPEED = 0.003;
+
+        function crearEstrellasFondo() {
+            const starGeometry = new THREE.BufferGeometry();
+            const starCount = 5000;
+            const positions = new Float32Array(starCount * 3);
+            for (let i = 0; i < starCount * 3; i++) {
+                positions[i] = (Math.random() - 0.5) * 500;
+            }
+            starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.7, transparent: true });
+            const stars = new THREE.Points(starGeometry, starMaterial);
+            glScene.add(stars);
+        }
+
+        function generateGalaxy() {
+            const parameters = {
+                count: 80000, size: 0.01, radius: 6, branches: 4, spin: 1,
+                randomness: 0.2, randomnessPower: 3,
+                insideColor: "#ff1b6b", outsideColor: "#3000ff"
+            };
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(parameters.count * 3);
+            const colors = new Float32Array(parameters.count * 3);
+            const colorInside = new THREE.Color(parameters.insideColor);
+            const colorOutside = new THREE.Color(parameters.outsideColor);
+
+            for (let i = 0; i < parameters.count; i++) {
+                const i3 = i * 3;
+                const radius = Math.random() * parameters.radius;
+                const spinAngle = radius * parameters.spin;
+                const branchAngle = ((i % parameters.branches) / parameters.branches) * Math.PI * 2;
+                const randomX = (Math.random() - 0.5) * parameters.randomness * radius;
+                const randomY = (Math.random() - 0.5) * parameters.randomness * radius;
+                const randomZ = (Math.random() - 0.5) * parameters.randomness * radius;
+
+                positions[i3]     = Math.cos(branchAngle + spinAngle) * radius + randomX;
+                positions[i3 + 1] = randomY;
+                positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * radius + randomZ;
+
+                const mixed = colorInside.clone().lerp(colorOutside, radius / parameters.radius);
+                colors[i3] = mixed.r; colors[i3 + 1] = mixed.g; colors[i3 + 2] = mixed.b;
+            }
+
+            geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: parameters.size, vertexColors: true, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+
+            galaxy = new THREE.Points(geometry, material);
+            glScene.add(galaxy);
+        }
+
+        function generateHeart() {
+            const heartGeometry = new THREE.BufferGeometry();
+            const hPos = [], hCol = [];
+            for (let i = 0; i < 3500; i++) {
+                const t = Math.random() * Math.PI * 2;
+                const s = Math.random() * 0.6 + 0.4;
+                let x = 17 * Math.pow(Math.sin(t), 3);
+                let y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+                let z = (Math.random() - 0.5) * 1;
+                x *= s * 0.15; y *= s * 0.15; z *= s * 0.15;
+                hPos.push(x, y + 2.2, z);
+                let c = new THREE.Color();
+                c.setHSL(0.95 + Math.random() * 0.05, 1, 0.65);
+                hCol.push(c.r, c.g, c.b);
+            }
+            heartGeometry.setAttribute("position", new THREE.Float32BufferAttribute(hPos, 3));
+            heartGeometry.setAttribute("color", new THREE.Float32BufferAttribute(hCol, 3));
+            const heartMaterial = new THREE.PointsMaterial({ size: 0.12, vertexColors: true });
+            heart = new THREE.Points(heartGeometry, heartMaterial);
+            glScene.add(heart);
+        }
+
+        function loadHeartModel() {
+            const gltfLoader = new THREE.GLTFLoader();
+            const matcapLoader = new THREE.TextureLoader();
+            gltfLoader.load(
+                'https://assets.codepen.io/74321/heart.glb',
+                (gltf) => {
+                    heartModel = gltf.scene;
+                    heartModel.position.set(0, 3.2, 0);
+                    heartModel.scale.set(1.2, 1.2, 1.2);
+                    const matcap = matcapLoader.load('https://assets.codepen.io/74321/3.png');
+                    heartModel.traverse((child) => {
+                        if (child.isMesh) {
+                            child.material = new THREE.MeshMatcapMaterial({ matcap, color: new THREE.Color('#ff3366') });
+                        }
+                    });
+                    glScene.add(heartModel);
+                },
+                undefined,
+                () => { /* Jika model gagal dimuat, scene tetap berjalan */ }
+            );
+        }
+
+        const frases = [
+            "Aku cinta kamu 💖", "Aku sayang kamu 💘", "Kamu segalanya bagiku ", "Sayangku ", "Cintaku 💞",
+            "My Daftar penting ", "Aku cinta kamu ", "Segalanya bagiku 💫", "my princes 👑", "Semestaku ",
+            "Cantik 😍", "Jelita ", "Manis 💕", "bidadariku "
+        ];
+
+        function crearTexto(msg, size = 1.8) {
+            const canvas = document.createElement("canvas");
+            canvas.width = 512; canvas.height = 128;
+            const ctx = canvas.getContext("2d");
+            ctx.font = "bold 50px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "#ff1493";
+            ctx.fillText(msg, canvas.width / 2, canvas.height / 2);
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(size * 4, size, 1);
+            return sprite;
+        }
+
+        function generateTexts() {
+            for (let i = 0; i < 90; i++) {
+                let t = crearTexto(frases[Math.floor(Math.random() * frases.length)], 1 + Math.random());
+                let x = (Math.random() - 0.5) * 40;
+                let y = (Math.random() - 0.5) * 25;
+                let z = (Math.random() - 0.5) * 40;
+                if (Math.abs(x) < 5 && Math.abs(y) < 5) y += 7;
+                t.position.set(x, y, z);
+                t.userData = {
+                    baseY: y,
+                    orbitRadius: Math.sqrt(x * x + z * z),
+                    orbitAngle: Math.atan2(z, x),
+                    orbitSpeed: ORBIT_SYNC_SPEED,
+                    floatAmp: Math.random() * 0.6 + 0.2,
+                    floatSpeed: Math.random() * 0.8 + 0.6,
+                    phase: Math.random() * Math.PI * 2,
+                    baseSize: 1 + Math.random()
+                };
+                t.scale.set(t.userData.baseSize * 4, t.userData.baseSize, 1);
+                glScene.add(t);
+                textoSprites.push(t);
+            }
+        }
+
+        function generatePhotos() {
+            const photoTextureLoader = new THREE.TextureLoader();
+            const urls = [
+                "foto1.jpg",
+                "foto2.jpg",
+                "foto3.jpg"
+            ];
+            for (let i = 0; i < 30; i++) {
+                const texture = photoTextureLoader.load(urls[i % urls.length]);
+                const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+                const sprite = new THREE.Sprite(material);
+                const scale = 1 + Math.random();
+                sprite.scale.set(scale, scale, 1);
+                let x = (Math.random() - 0.5) * 40;
+                let y = (Math.random() - 0.5) * 25;
+                let z = (Math.random() - 0.5) * 40;
+                if (Math.abs(x) < 5 && Math.abs(y) < 5) y += 7;
+                sprite.position.set(x, y, z);
+                sprite.userData = {
+                    baseY: y,
+                    orbitRadius: Math.sqrt(x * x + z * z),
+                    orbitAngle: Math.atan2(z, x),
+                    orbitSpeed: ORBIT_SYNC_SPEED,
+                    floatAmp: Math.random() * 0.5 + 0.15,
+                    floatSpeed: Math.random() * 0.9 + 0.5,
+                    phase: Math.random() * Math.PI * 2,
+                    baseScale: scale
+                };
+                glScene.add(sprite);
+                fotoSprites.push(sprite);
+            }
+        }
+
+        const frasesRomanticas = [
+            'Sejak kamu hadir dalam hidupku, aku merasa alam semesta telah menemukan cara sempurna untuk menata dirinya di dalam hatiku. Kamu seperti seluruh galaksi, penuh dengan misteri indah yang ingin aku temukan perlahan-lahan, seperti bintang-bintang yang bersinar bahkan di malam-malamku yang paling gelap. Terkadang aku berpikir, di antara jutaan dunia, aku sangat beruntung menemukanmu, seolah takdir telah merancang kisah kita sejak awal waktu. Dan mencintaimu terasa seperti ini; tak terbatas, dalam, dan cemerlang, seperti langit saat aku menatapnya dan memikirkan segala arti dirimu bagiku. ✨'
+        ];
+
+        function mostrarMensajeRomantico() {
+            const mensaje = frasesRomanticas[Math.floor(Math.random() * frasesRomanticas.length)];
+            mensajeRomantico.textContent = mensaje;
+            modalCarta.classList.add('visible');
+        }
+
+        function init() {
+            glScene = new THREE.Scene();
+            crearEstrellasFondo();
+            generateGalaxy();
+            generateHeart();
+            loadHeartModel();
+            generateTexts();
+            generatePhotos();
+
+            const sizes = { width: window.innerWidth, height: window.innerHeight };
+            glCamera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 600);
+            glCamera.position.set(10, 12, 20);
+            glScene.add(glCamera);
+
+            glRenderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: true });
+            glRenderer.setSize(sizes.width, sizes.height);
+            glRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            glControls = new THREE.OrbitControls(glCamera, glRenderer.domElement);
+            glControls.enableDamping = true;
+            glClock = new THREE.Clock();
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            cerrarCarta.addEventListener('click', () => modalCarta.classList.remove('visible'));
+            modalCarta.addEventListener('click', (event) => {
+                if (event.target === modalCarta) modalCarta.classList.remove('visible');
+            });
+
+            canvasEl.addEventListener('pointerdown', (event) => {
+                if (!heartModel) return;
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, glCamera);
+                const impactos = raycaster.intersectObject(heartModel, true);
+                if (impactos.length > 0) mostrarMensajeRomantico();
+            });
+
+            closeBtn.addEventListener('click', () => {
+                if (active) toggleGalaxiloveOverlay();
+            });
+
+            window.addEventListener('resize', () => {
+                if (!glRenderer) return;
+                sizes.width = window.innerWidth;
+                sizes.height = window.innerHeight;
+                glCamera.aspect = sizes.width / sizes.height;
+                glCamera.updateProjectionMatrix();
+                glRenderer.setSize(sizes.width, sizes.height);
+            });
+
+            initialized = true;
+        }
+
+        function tick() {
+            if (!active) { animationId = null; return; }
+            const elapsed = glClock.getElapsedTime();
+
+            galaxy.rotation.y += 0.001;
+            heart.rotation.y += ORBIT_SYNC_SPEED;
+            heart.rotation.z = Math.sin(elapsed * 1.7) * 0.08;
+
+            if (heartModel) {
+                heartModel.rotation.y += 0.01;
+                heartModel.rotation.x = Math.sin(elapsed * 1.8) * 0.1;
+                heartModel.position.y = 3.2 + Math.sin(elapsed * 2.2) * 0.25;
+            }
+
+            textoSprites.forEach(t => {
+                const d = t.userData;
+                d.orbitAngle += d.orbitSpeed;
+                t.position.x = Math.cos(d.orbitAngle) * d.orbitRadius;
+                t.position.z = Math.sin(d.orbitAngle) * d.orbitRadius;
+                t.position.y = d.baseY + Math.sin(elapsed * d.floatSpeed + d.phase) * d.floatAmp;
+                const pulse = 1 + Math.sin(elapsed * 2.4 + d.phase) * 0.1;
+                t.scale.set(d.baseSize * 4 * pulse, d.baseSize * pulse, 1);
+                t.material.opacity = 0.72 + Math.sin(elapsed * 1.9 + d.phase) * 0.2;
+                t.lookAt(glCamera.position);
+            });
+
+            fotoSprites.forEach(s => {
+                const d = s.userData;
+                d.orbitAngle += d.orbitSpeed;
+                s.position.x = Math.cos(d.orbitAngle) * d.orbitRadius;
+                s.position.z = Math.sin(d.orbitAngle) * d.orbitRadius;
+                s.position.y = d.baseY + Math.sin(elapsed * d.floatSpeed + d.phase) * d.floatAmp;
+                const pulse = 1 + Math.sin(elapsed * 1.7 + d.phase) * 0.08;
+                s.scale.set(d.baseScale * pulse, d.baseScale * pulse, 1);
+                s.material.rotation += 0.0015;
+                s.material.opacity = 0.7 + Math.sin(elapsed * 1.5 + d.phase) * 0.25;
+                s.lookAt(glCamera.position);
+            });
+
+            glControls.update();
+            glRenderer.render(glScene, glCamera);
+            animationId = requestAnimationFrame(tick);
+        }
+
+        // Fungsi global dipanggil oleh script NebulaHeart saat gestur 👌 terdeteksi
+        window.toggleGalaxiloveOverlay = function() {
+            if (!initialized) init();
+            active = !active;
+            if (active) {
+                overlay.style.display = 'block';
+                if (!animationId) tick();
+                musica.play().catch(() => { /* browser mungkin memblokir autoplay tanpa klik langsung, tidak apa-apa */ });
+            } else {
+                overlay.style.display = 'none';
+                musica.pause();
+            }
+        };
+    })();
     </script>
 </body>
 </html>
