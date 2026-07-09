@@ -933,24 +933,11 @@
                 "foto3.jpg"
             ];
             for (let i = 0; i < 30; i++) {
-                const scale = 1 + Math.random();
-                const material = new THREE.SpriteMaterial({ transparent: true });
+                const texture = photoTextureLoader.load(urls[i % urls.length]);
+                const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
                 const sprite = new THREE.Sprite(material);
+                const scale = 1 + Math.random();
                 sprite.scale.set(scale, scale, 1);
-                const texture = photoTextureLoader.load(urls[i % urls.length], (tex) => {
-                    // Setelah gambar asli dimuat, sesuaikan scale sprite
-                    // supaya rasio lebar:tinggi mengikuti ukuran foto aslinya
-                    const img = tex.image;
-                    if (img && img.width && img.height) {
-                        const aspect = img.width / img.height;
-                        if (aspect >= 1) {
-                            sprite.scale.set(scale * aspect, scale, 1);
-                        } else {
-                            sprite.scale.set(scale, scale / aspect, 1);
-                        }
-                    }
-                });
-                material.map = texture;
                 let x = (Math.random() - 0.5) * 40;
                 let y = (Math.random() - 0.5) * 25;
                 let z = (Math.random() - 0.5) * 40;
