@@ -248,7 +248,7 @@
             3: "TEKS I LOVE YOU (2 Jari / Peace)",
             4: "BENTUK HATI (Tangan Mengepal)",
             5: "SELY 🫰 (Finger Heart)",
-            7: "KUPU-KUPU 🦋 (Rock Sign)",
+            7: "DNA HELIX 🧬 (Rock Sign)",
             9: "ZEN & CINTA 🤟 (I Love You Sign)"
         };
 
@@ -316,9 +316,7 @@
         const posHeart = new Float32Array(NUM_PARTICLES * 3);
         const posSely = new Float32Array(NUM_PARTICLES * 3);
         const posGalaxy = new Float32Array(NUM_PARTICLES * 3);
-        const posDNA = new Float32Array(NUM_PARTICLES * 3); // posisi target bentuk KUPU-KUPU (mode 7)
-        const posDNABaseX = new Float32Array(NUM_PARTICLES); // posisi X saat sayap terbuka penuh (dasar animasi kepak)
-        const posDNABaseZ = new Float32Array(NUM_PARTICLES); // posisi Z saat sayap terbuka penuh (dasar animasi kepak)
+        const posDNA = new Float32Array(NUM_PARTICLES * 3);
         const posPray = new Float32Array(NUM_PARTICLES * 3); // Mode 9: ZEN + HATI + SELY (vertikal)
         const PRAY_ZEN_COUNT = Math.floor(NUM_PARTICLES * 0.34);
         const PRAY_HEART_COUNT = Math.floor(NUM_PARTICLES * 0.33);
@@ -411,57 +409,31 @@
                 posGalaxy[i*3+2] = radius * Math.sin(angle);
             }
 
-            // KUPU-KUPU (Mode 7) - badan, antena, sayap atas (besar) & sayap bawah (kecil)
-            const BF_BODY = 120;
-            const BF_ANT = 60;
-            const BF_FORE_EACH = 400; // sayap atas, per sisi
-            const BF_HIND_EACH = 260; // sayap bawah, per sisi
+            // DNA HELIX (Mode 7)
+            const dnaHeight = 3.6;
+            const dnaRadius = 0.9;
+            const dnaTurns = 3;
             for (let i = 0; i < NUM_PARTICLES; i++) {
-                let x = 0, y = 0, z = 0;
-                if (i < BF_BODY) {
-                    // Badan kupu-kupu: garis vertikal tipis di tengah
-                    let t = i / BF_BODY;
-                    y = (t - 0.5) * 1.8;
-                    x = (Math.random() - 0.5) * 0.12;
-                    z = (Math.random() - 0.5) * 0.12;
-                } else if (i < BF_BODY + BF_ANT) {
-                    // Antena: dua garis melengkung dari atas badan
-                    let k = i - BF_BODY;
-                    let side = (k % 2 === 0) ? 1 : -1;
-                    let t = Math.floor(k / 2) / (BF_ANT / 2);
-                    x = side * (0.05 + t * 0.55);
-                    y = 0.9 + t * 0.65 + Math.sin(t * Math.PI * 0.5) * 0.1;
-                    z = (Math.random() - 0.5) * 0.05;
-                } else if (i < BF_BODY + BF_ANT + BF_FORE_EACH * 2) {
-                    // Sayap atas (forewing) - lebih besar, melebar ke atas
-                    let idx = i - (BF_BODY + BF_ANT);
-                    let side = (idx < BF_FORE_EACH) ? 1 : -1;
-                    let u = Math.random();
-                    let v = (Math.random() * 2) - 1;
-                    let width = Math.pow(Math.sin(Math.PI * u), 0.7);
-                    let span = u * 1.7;
-                    let chord = v * width * 0.95;
-                    x = side * (0.12 + span);
-                    y = 0.5 + chord + span * 0.35;
-                    z = (Math.random() - 0.5) * 0.06;
+                if (i % 10 === 0) {
+                    // Partikel "anak tangga" yang menghubungkan dua untai DNA
+                    let tt = (Math.floor(i / 10) / (NUM_PARTICLES / 10)) * dnaHeight - dnaHeight / 2;
+                    let angle = (tt / dnaHeight) * dnaTurns * Math.PI * 2;
+                    let frac = Math.random();
+                    let rx1 = dnaRadius * Math.cos(angle);
+                    let rz1 = dnaRadius * Math.sin(angle);
+                    let rx2 = dnaRadius * Math.cos(angle + Math.PI);
+                    let rz2 = dnaRadius * Math.sin(angle + Math.PI);
+                    posDNA[i*3]   = rx1 + (rx2 - rx1) * frac;
+                    posDNA[i*3+1] = tt;
+                    posDNA[i*3+2] = rz1 + (rz2 - rz1) * frac;
                 } else {
-                    // Sayap bawah (hindwing) - lebih kecil, melengkung ke bawah
-                    let idx = i - (BF_BODY + BF_ANT + BF_FORE_EACH * 2);
-                    let side = (idx < BF_HIND_EACH) ? 1 : -1;
-                    let u = Math.random();
-                    let v = (Math.random() * 2) - 1;
-                    let width = Math.pow(Math.sin(Math.PI * u), 0.7);
-                    let span = u * 1.05;
-                    let chord = v * width * 0.65;
-                    x = side * (0.10 + span);
-                    y = -0.05 + chord - span * 0.3;
-                    z = (Math.random() - 0.5) * 0.06;
+                    let strand = i % 2;
+                    let tt = (i / NUM_PARTICLES) * dnaHeight - dnaHeight / 2;
+                    let angle = (tt / dnaHeight) * dnaTurns * Math.PI * 2 + (strand === 1 ? Math.PI : 0);
+                    posDNA[i*3]   = dnaRadius * Math.cos(angle) + (Math.random() - 0.5) * 0.05;
+                    posDNA[i*3+1] = tt;
+                    posDNA[i*3+2] = dnaRadius * Math.sin(angle) + (Math.random() - 0.5) * 0.05;
                 }
-                posDNA[i*3]   = x;
-                posDNA[i*3+1] = y;
-                posDNA[i*3+2] = z;
-                posDNABaseX[i] = x; // simpan posisi X saat sayap terbuka penuh
-                posDNABaseZ[i] = z; // simpan posisi Z saat sayap terbuka penuh
             }
 
             // ZEN + HATI + SELY (Mode 9) - disusun VERTIKAL: teks "ZEN" (atas),
@@ -590,7 +562,7 @@
                 }
             }
 
-            // 4. Cek Mode KUPU-KUPU 🦋 (Rock Sign: Telunjuk + Kelingking berdiri, jempol terlipat)
+            // 4. Cek Mode DNA HELIX 🧬 (Rock Sign: Telunjuk + Kelingking berdiri, jempol terlipat)
             if (fingersUp[0] && !fingersUp[1] && !fingersUp[2] && fingersUp[3]) {
                 return 7;
             }
@@ -619,7 +591,6 @@
         const loveCaptions = {
             4: "Untuk kamu, dengan sepenuh hati 💖",
             5: "Kamu spesial banget buat aku 🫰",
-            7: "Cinta ini bikin aku terbang seperti kupu-kupu 🦋",
             9: "aku mau kamu jadi milik ku selamanya 🤟"
         };
         function updateCaption(mode) {
@@ -693,20 +664,6 @@
         }
         setInterval(spawnFallingHeart, 750);
 
-        // Animasi kepakan sayap kupu-kupu (mode 7): sayap membuka & menutup
-        // dengan cara memutar posisi X/Z tiap partikel sayap terhadap sumbu badan.
-        function updateButterflyFlap(elapsed) {
-            const flapAngle = Math.sin(elapsed * 3.4) * 0.85; // kecepatan & amplitudo kepakan
-            const cosA = Math.cos(flapAngle);
-            const sinA = Math.sin(flapAngle);
-            for (let i = 0; i < NUM_PARTICLES; i++) {
-                const bx = posDNABaseX[i];
-                const bz = posDNABaseZ[i];
-                posDNA[i*3]   = bx * cosA;
-                posDNA[i*3+2] = bz + Math.abs(bx) * sinA;
-            }
-        }
-
         // ==========================================
         // LOOP ANIMASI RENDERING 3D
         // ==========================================
@@ -723,7 +680,7 @@
             else if (currentMode === 3) { targetPosArray = posText; rotationAngle = 0; }
             else if (currentMode === 4) { targetPosArray = posHeart; rotationAngle += 0.015; }
             else if (currentMode === 5) { targetPosArray = posSely; rotationAngle = 0; }
-            else if (currentMode === 7) { updateButterflyFlap(Date.now() * 0.001); targetPosArray = posDNA; rotationAngle += 0.008; }
+            else if (currentMode === 7) { targetPosArray = posDNA; rotationAngle += 0.02; }
             else if (currentMode === 9) { targetPosArray = posPray; rotationAngle = 0; }
 
             const posAttr = geometry.attributes.position.array;
@@ -744,10 +701,10 @@
                     colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.1; colAttr[i*3+2] = 0.4;
                 } else if (currentMode === 5) { // Ungu Sely
                     colAttr[i*3] = 0.8; colAttr[i*3+1] = 0.2; colAttr[i*3+2] = 1.0;
-                } else if (currentMode === 7) { // KUPU-KUPU - badan putih krem, sayap atas pink, sayap bawah ungu
-                    if (i < 180) { colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.95; colAttr[i*3+2] = 0.85; }
-                    else if (i < 980) { colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.15; colAttr[i*3+2] = 0.55; }
-                    else { colAttr[i*3] = 0.6; colAttr[i*3+1] = 0.15; colAttr[i*3+2] = 1.0; }
+                } else if (currentMode === 7) { // DNA - untai cyan & magenta, anak tangga putih
+                    if (i % 10 === 0) { colAttr[i*3] = 1.0; colAttr[i*3+1] = 1.0; colAttr[i*3+2] = 1.0; }
+                    else if (i % 2 === 0) { colAttr[i*3] = 0.0; colAttr[i*3+1] = 1.0; colAttr[i*3+2] = 0.9; }
+                    else { colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.0; colAttr[i*3+2] = 0.6; }
                 } else if (currentMode === 9) { // ZEN (emas lembut) + HATI (pink) + SELY (putih keunguan)
                     if (i < PRAY_ZEN_COUNT) {
                         colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.85; colAttr[i*3+2] = 0.55;
@@ -976,11 +933,24 @@
                 "foto3.jpg"
             ];
             for (let i = 0; i < 30; i++) {
-                const texture = photoTextureLoader.load(urls[i % urls.length]);
-                const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
-                const sprite = new THREE.Sprite(material);
                 const scale = 1 + Math.random();
+                const material = new THREE.SpriteMaterial({ transparent: true });
+                const sprite = new THREE.Sprite(material);
                 sprite.scale.set(scale, scale, 1);
+                const texture = photoTextureLoader.load(urls[i % urls.length], (tex) => {
+                    // Setelah gambar asli dimuat, sesuaikan scale sprite
+                    // supaya rasio lebar:tinggi mengikuti ukuran foto aslinya
+                    const img = tex.image;
+                    if (img && img.width && img.height) {
+                        const aspect = img.width / img.height;
+                        if (aspect >= 1) {
+                            sprite.scale.set(scale * aspect, scale, 1);
+                        } else {
+                            sprite.scale.set(scale, scale / aspect, 1);
+                        }
+                    }
+                });
+                material.map = texture;
                 let x = (Math.random() - 0.5) * 40;
                 let y = (Math.random() - 0.5) * 25;
                 let z = (Math.random() - 0.5) * 40;
