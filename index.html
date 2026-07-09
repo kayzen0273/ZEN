@@ -248,7 +248,7 @@
             3: "TEKS I LOVE YOU (2 Jari / Peace)",
             4: "BENTUK HATI (Tangan Mengepal)",
             5: "SELY 🫰 (Finger Heart)",
-            7: "DNA HELIX 🧬 (Rock Sign)",
+            7: "KUPU-KUPU 🦋 (Rock Sign)",
             9: "ZEN & CINTA 🤟 (I Love You Sign)"
         };
 
@@ -317,6 +317,9 @@
         const posSely = new Float32Array(NUM_PARTICLES * 3);
         const posGalaxy = new Float32Array(NUM_PARTICLES * 3);
         const posDNA = new Float32Array(NUM_PARTICLES * 3);
+        const posButterflyBase = new Float32Array(NUM_PARTICLES * 3); // Mode 7: bentuk kupu-kupu saat diam (rest pose)
+        const posButterflyAnimated = new Float32Array(NUM_PARTICLES * 3); // Mode 7: posisi setelah dianimasikan kepakan sayap
+        const colButterfly = new Float32Array(NUM_PARTICLES * 3); // Mode 7: pola warna kupu-kupu (oranye/hitam/putih ala monarch)
         const posPray = new Float32Array(NUM_PARTICLES * 3); // Mode 9: ZEN + HATI + SELY (vertikal)
         const PRAY_ZEN_COUNT = Math.floor(NUM_PARTICLES * 0.34);
         const PRAY_HEART_COUNT = Math.floor(NUM_PARTICLES * 0.33);
@@ -436,6 +439,9 @@
                 }
             }
 
+            // KUPU-KUPU REALISTIS (Mode 7 - gestur 🤘)
+            generateButterfly();
+
             // ZEN + HATI + SELY (Mode 9) - disusun VERTIKAL: teks "ZEN" (atas),
             // bentuk hati (tengah), lalu teks "SELY" (bawah)
             const zenTextPoints = [];
@@ -511,6 +517,107 @@
         }
 
         // ==========================================
+        // BENTUK KUPU-KUPU REALISTIS (Mode 7 - gestur 🤘)
+        // Sayap depan (besar) + sayap belakang (kecil) + badan + antena,
+        // dengan pola warna ala Monarch (oranye - hitam - bintik putih)
+        // ==========================================
+        function generateButterfly() {
+            const bodyCount = Math.floor(NUM_PARTICLES * 0.07);
+            const antennaCount = Math.floor(NUM_PARTICLES * 0.03);
+            const wingCount = NUM_PARTICLES - bodyCount - antennaCount;
+            const perWing = Math.floor(wingCount / 4); // sayap-depan-kiri, sayap-depan-kanan, sayap-belakang-kiri, sayap-belakang-kanan
+
+            for (let i = 0; i < NUM_PARTICLES; i++) {
+                let x = 0, y = 0, z = 0;
+                let r = 0.1, g = 0.1, b = 0.1;
+
+                if (i < bodyCount) {
+                    // BADAN - garis vertikal tipis berbulu gelap
+                    const tt = i / bodyCount;
+                    x = (Math.random() - 0.5) * 0.07;
+                    y = -1.3 + tt * 2.55;
+                    z = (Math.random() - 0.5) * 0.07;
+                    const fuzz = Math.random() < 0.12;
+                    r = fuzz ? 0.9 : 0.10; g = fuzz ? 0.85 : 0.07; b = fuzz ? 0.8 : 0.05;
+
+                } else if (i < bodyCount + antennaCount) {
+                    // ANTENA - dua garis melengkung dari kepala ke atas
+                    const side = (i % 2 === 0) ? -1 : 1;
+                    const tt = Math.random();
+                    x = side * (0.05 + tt * 0.42 + Math.sin(tt * Math.PI) * 0.12);
+                    y = 1.28 + tt * 0.55;
+                    z = (Math.random() - 0.5) * 0.05;
+                    r = 0.08; g = 0.06; b = 0.05;
+
+                } else {
+                    const wingIdx = i - bodyCount - antennaCount;
+                    const wingType = Math.floor(wingIdx / perWing); // 0=depan-kiri,1=depan-kanan,2=belakang-kiri,3=belakang-kanan
+                    const side = (wingType === 0 || wingType === 2) ? -1 : 1;
+                    const isFore = (wingType === 0 || wingType === 1);
+                    const frac = Math.pow(Math.random(), 0.85); // jarak dari badan (0) ke ujung sayap (1)
+
+                    let spanMax, heightMax, attachY, liftNearBody;
+                    if (isFore) {
+                        spanMax = 1.95; heightMax = 1.2; attachY = 0.55; liftNearBody = 0.32;
+                    } else {
+                        spanMax = 1.25; heightMax = 0.85; attachY = -0.25; liftNearBody = 0.15;
+                    }
+
+                    // Siluet sayap: membulat dekat badan, meruncing ke ujung (mirip bentuk sayap asli)
+                    const silhouette = Math.sin(Math.PI * Math.pow(frac, 0.6)) * heightMax;
+                    x = side * (0.12 + frac * spanMax);
+                    y = attachY + (Math.random() - 0.5) * silhouette + liftNearBody * (1 - frac);
+                    z = (Math.random() - 0.5) * 0.09 + (isFore ? 0 : -0.02);
+
+                    // Pola warna ala Monarch: badan sayap oranye, pinggiran & urat hitam, bintik putih di tepi
+                    const edgeZone = frac > 0.80;
+                    const veinChance = Math.random();
+                    if (edgeZone) {
+                        const isSpot = Math.random() < 0.35;
+                        if (isSpot) { r = 0.95; g = 0.95; b = 0.92; }
+                        else { r = 0.05; g = 0.04; b = 0.05; }
+                    } else if (veinChance < 0.09) {
+                        // urat hitam menjalar dari badan ke ujung sayap
+                        r = 0.06; g = 0.05; b = 0.05;
+                    } else if (!isFore && frac < 0.22) {
+                        // bercak gelap dekat badan pada sayap belakang (khas Monarch)
+                        r = 0.15; g = 0.08; b = 0.06;
+                    } else {
+                        // oranye utama dengan sedikit variasi gradasi
+                        const glow = 0.75 + Math.random() * 0.25;
+                        r = glow; g = 0.40 + Math.random() * 0.18; b = 0.02 + Math.random() * 0.05;
+                    }
+                }
+
+                posButterflyBase[i * 3] = x;
+                posButterflyBase[i * 3 + 1] = y;
+                posButterflyBase[i * 3 + 2] = z;
+                colButterfly[i * 3] = r;
+                colButterfly[i * 3 + 1] = g;
+                colButterfly[i * 3 + 2] = b;
+            }
+        }
+
+        // Menghitung posisi kupu-kupu tiap frame supaya sayapnya benar-benar mengepak
+        // (rotasi di sekitar sumbu badan/vertikal, membuat sayap membuka & menutup)
+        function updateButterflyPositions() {
+            const t = Date.now() * 0.0045;
+            const flap = Math.sin(t) * 0.85; // sudut kepakan (radian)
+            const cosF = Math.cos(flap);
+            const sinF = Math.sin(flap);
+            const bounce = Math.sin(t * 2) * 0.04; // sedikit gerak naik-turun mengikuti kepakan
+
+            for (let i = 0; i < NUM_PARTICLES; i++) {
+                const bx = posButterflyBase[i * 3];
+                const by = posButterflyBase[i * 3 + 1];
+                const bz = posButterflyBase[i * 3 + 2];
+                posButterflyAnimated[i * 3]     = bx * cosF - bz * sinF;
+                posButterflyAnimated[i * 3 + 1] = by + Math.abs(bx) * bounce;
+                posButterflyAnimated[i * 3 + 2] = bx * sinF + bz * cosF;
+            }
+        }
+
+        // ==========================================
         // LOGIKA DETEKSI GESTUR - URUTAN DIPERBAIKI
         // ==========================================
         function calculateGestureMode(landmarks) {
@@ -562,7 +669,7 @@
                 }
             }
 
-            // 4. Cek Mode DNA HELIX 🧬 (Rock Sign: Telunjuk + Kelingking berdiri, jempol terlipat)
+            // 4. Cek Mode KUPU-KUPU 🦋 (Rock Sign: Telunjuk + Kelingking berdiri, jempol terlipat)
             if (fingersUp[0] && !fingersUp[1] && !fingersUp[2] && fingersUp[3]) {
                 return 7;
             }
@@ -591,6 +698,7 @@
         const loveCaptions = {
             4: "Untuk kamu, dengan sepenuh hati 💖",
             5: "Kamu spesial banget buat aku 🫰",
+            7: "Cinta kita seindah kupu-kupu yang terbang bebas 🦋",
             9: "aku mau kamu jadi milik ku selamanya 🤟"
         };
         function updateCaption(mode) {
@@ -680,7 +788,7 @@
             else if (currentMode === 3) { targetPosArray = posText; rotationAngle = 0; }
             else if (currentMode === 4) { targetPosArray = posHeart; rotationAngle += 0.015; }
             else if (currentMode === 5) { targetPosArray = posSely; rotationAngle = 0; }
-            else if (currentMode === 7) { targetPosArray = posDNA; rotationAngle += 0.02; }
+            else if (currentMode === 7) { updateButterflyPositions(); targetPosArray = posButterflyAnimated; rotationAngle += 0.008; }
             else if (currentMode === 9) { targetPosArray = posPray; rotationAngle = 0; }
 
             const posAttr = geometry.attributes.position.array;
@@ -701,10 +809,8 @@
                     colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.1; colAttr[i*3+2] = 0.4;
                 } else if (currentMode === 5) { // Ungu Sely
                     colAttr[i*3] = 0.8; colAttr[i*3+1] = 0.2; colAttr[i*3+2] = 1.0;
-                } else if (currentMode === 7) { // DNA - untai cyan & magenta, anak tangga putih
-                    if (i % 10 === 0) { colAttr[i*3] = 1.0; colAttr[i*3+1] = 1.0; colAttr[i*3+2] = 1.0; }
-                    else if (i % 2 === 0) { colAttr[i*3] = 0.0; colAttr[i*3+1] = 1.0; colAttr[i*3+2] = 0.9; }
-                    else { colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.0; colAttr[i*3+2] = 0.6; }
+                } else if (currentMode === 7) { // Kupu-kupu - warna oranye/hitam/putih ala Monarch dari pola yang sudah digenerate
+                    colAttr[i*3] = colButterfly[i*3]; colAttr[i*3+1] = colButterfly[i*3+1]; colAttr[i*3+2] = colButterfly[i*3+2];
                 } else if (currentMode === 9) { // ZEN (emas lembut) + HATI (pink) + SELY (putih keunguan)
                     if (i < PRAY_ZEN_COUNT) {
                         colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.85; colAttr[i*3+2] = 0.55;
@@ -933,11 +1039,24 @@
                 "foto3.jpg"
             ];
             for (let i = 0; i < 30; i++) {
-                const texture = photoTextureLoader.load(urls[i % urls.length]);
-                const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
-                const sprite = new THREE.Sprite(material);
                 const scale = 1 + Math.random();
+                const material = new THREE.SpriteMaterial({ transparent: true });
+                const sprite = new THREE.Sprite(material);
                 sprite.scale.set(scale, scale, 1);
+                const texture = photoTextureLoader.load(urls[i % urls.length], (tex) => {
+                    // Setelah gambar asli dimuat, sesuaikan scale sprite
+                    // supaya rasio lebar:tinggi mengikuti ukuran foto aslinya
+                    const img = tex.image;
+                    if (img && img.width && img.height) {
+                        const aspect = img.width / img.height;
+                        if (aspect >= 1) {
+                            sprite.scale.set(scale * aspect, scale, 1);
+                        } else {
+                            sprite.scale.set(scale, scale / aspect, 1);
+                        }
+                    }
+                });
+                material.map = texture;
                 let x = (Math.random() - 0.5) * 40;
                 let y = (Math.random() - 0.5) * 25;
                 let z = (Math.random() - 0.5) * 40;
