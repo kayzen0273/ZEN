@@ -709,15 +709,16 @@
                     colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.1; colAttr[i*3+2] = 0.4;
                 } else if (currentMode === 5) { // Ungu Sely
                     colAttr[i*3] = 0.8; colAttr[i*3+1] = 0.2; colAttr[i*3+2] = 1.0;
-                } else if (currentMode === 7) { // KUPU-KUPU KEREN - badan gelap, sayap gradasi iridescent ungu-pink-biru
+                } else if (currentMode === 7) { // KUPU-KUPU KEREN - badan hitam pekat, sayap neon pelangi bergeser
                     if (i < BUTTERFLY_BODY_COUNT) {
-                        colAttr[i*3] = 0.15; colAttr[i*3+1] = 0.05; colAttr[i*3+2] = 0.25;
+                        colAttr[i*3] = 0.05; colAttr[i*3+1] = 0.05; colAttr[i*3+2] = 0.08;
                     } else {
-                        // Gradasi warna sayap berdasarkan jarak dari badan, biar tiap ujung sayap "menyala"
+                        // Pelangi neon: hue bergeser mengikiti rotationAngle biar sayapnya berkilau hidup
                         let wingFrac = ((i - BUTTERFLY_BODY_COUNT) % 100) / 100;
-                        colAttr[i*3]   = 0.5 + Math.sin(wingFrac * Math.PI * 2) * 0.5;
-                        colAttr[i*3+1] = 0.15 + Math.sin(wingFrac * Math.PI * 2 + 2.1) * 0.25;
-                        colAttr[i*3+2] = 0.7 + Math.sin(wingFrac * Math.PI * 2 + 4.2) * 0.3;
+                        let huePhase = wingFrac * Math.PI * 2 + rotationAngle * 3;
+                        colAttr[i*3]   = 0.5 + Math.sin(huePhase) * 0.5;
+                        colAttr[i*3+1] = 0.5 + Math.sin(huePhase + 2.094) * 0.5;
+                        colAttr[i*3+2] = 0.5 + Math.sin(huePhase + 4.189) * 0.5;
                     }
                 } else if (currentMode === 9) { // ZEN (emas lembut) + HATI (pink) + SELY (putih keunguan)
                     if (i < PRAY_ZEN_COUNT) {
