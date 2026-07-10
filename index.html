@@ -528,25 +528,30 @@
             let path, tipX, tipY, gradEndX, gradEndY;
 
             if (isFore) {
-                // Sayap depan: lebih besar, meruncing ke ujung
+                // Sayap depan: memanjang, ujung (apex) meruncing khas kupu-kupu, tepi dalam sedikit cekung
                 path = new Path2D();
-                path.moveTo(10, -55);
-                path.bezierCurveTo(55, -175, 190, -195, 250, -105);
-                path.bezierCurveTo(235, -35, 175, 35, 95, 45);
-                path.bezierCurveTo(50, 15, 18, -15, 10, -55);
+                path.moveTo(12, -50);
+                path.bezierCurveTo(35, -160, 130, -225, 220, -190);
+                path.bezierCurveTo(268, -170, 285, -130, 265, -85);
+                path.bezierCurveTo(250, -55, 210, -20, 150, 10);
+                path.bezierCurveTo(105, 30, 65, 20, 40, -5);
+                path.bezierCurveTo(22, -22, 13, -35, 12, -50);
                 path.closePath();
-                tipX = 250; tipY = -105;
-                gradEndX = 250; gradEndY = -105;
+                tipX = 235; tipY = -178;
+                gradEndX = 235; gradEndY = -178;
             } else {
-                // Sayap belakang: lebih kecil dan bulat
+                // Sayap belakang: lebih kecil & bulat, tepi luar sedikit bergelombang (scalloped) khas kupu-kupu asli
                 path = new Path2D();
-                path.moveTo(6, 5);
-                path.bezierCurveTo(65, 15, 140, 55, 158, 130);
-                path.bezierCurveTo(145, 172, 90, 190, 42, 158);
-                path.bezierCurveTo(14, 128, 4, 55, 6, 5);
+                path.moveTo(6, -5);
+                path.bezierCurveTo(60, 5, 130, 45, 155, 110);
+                path.bezierCurveTo(160, 130, 152, 142, 145, 155);
+                path.bezierCurveTo(130, 148, 128, 165, 110, 172);
+                path.bezierCurveTo(90, 165, 88, 180, 68, 178);
+                path.bezierCurveTo(35, 165, 12, 130, 6, 80);
+                path.bezierCurveTo(3, 50, 3, 15, 6, -5);
                 path.closePath();
-                tipX = 158; tipY = 130;
-                gradEndX = 158; gradEndY = 130;
+                tipX = 145; tipY = 155;
+                gradEndX = 145; gradEndY = 155;
             }
 
             // --- Gradasi dasar oranye (terang dekat badan, gelap ke ujung) ---
@@ -563,28 +568,28 @@
             ctx.fillStyle = 'rgba(20,14,10,0.92)';
             ctx.beginPath();
             if (isFore) {
-                ctx.moveTo(140, -190);
-                ctx.bezierCurveTo(200, -180, 245, -140, 250, -95);
-                ctx.bezierCurveTo(220, -110, 175, -140, 140, -190);
+                ctx.moveTo(150, -215);
+                ctx.bezierCurveTo(210, -205, 260, -165, 262, -115);
+                ctx.bezierCurveTo(230, -130, 185, -165, 150, -215);
                 ctx.closePath();
                 ctx.fill();
                 // bintik putih di zona gelap ujung sayap depan
                 ctx.fillStyle = 'rgba(255,255,250,0.95)';
-                const spots = [[175,-165],[200,-150],[220,-130],[195,-118],[165,-140]];
+                const spots = [[190,-185],[215,-170],[235,-145],[210,-130],[180,-160]];
                 spots.forEach(([sx,sy]) => { ctx.beginPath(); ctx.arc(sx, sy, 6.5, 0, Math.PI*2); ctx.fill(); });
             } else {
-                ctx.moveTo(80, 150);
-                ctx.bezierCurveTo(120, 145, 150, 120, 158, 90);
-                ctx.bezierCurveTo(150, 130, 120, 165, 80, 170);
+                ctx.moveTo(75, 150);
+                ctx.bezierCurveTo(115, 145, 145, 120, 152, 95);
+                ctx.bezierCurveTo(148, 130, 120, 162, 75, 168);
                 ctx.closePath();
                 ctx.fill();
                 ctx.fillStyle = 'rgba(255,255,250,0.9)';
-                const spots2 = [[95,155],[115,150],[135,130],[105,168]];
+                const spots2 = [[95,155],[112,148],[130,128],[100,165]];
                 spots2.forEach(([sx,sy]) => { ctx.beginPath(); ctx.arc(sx, sy, 5.5, 0, Math.PI*2); ctx.fill(); });
                 // bercak hitam besar khas dekat badan pada sayap belakang
                 ctx.fillStyle = 'rgba(20,14,10,0.85)';
-                ctx.beginPath(); ctx.arc(30, 55, 9, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(55, 90, 7, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(28, 50, 9, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(50, 85, 7, 0, Math.PI*2); ctx.fill();
             }
             ctx.restore();
 
@@ -615,8 +620,8 @@
         }
 
         function generateButterfly() {
-            const size = 620;
-            const cx = size / 2, cy = size / 2 + 10;
+            const size = 680;
+            const cx = size / 2, cy = size / 2 + 15;
             const offCanvas = document.createElement('canvas');
             offCanvas.width = size; offCanvas.height = size;
             const ctx = offCanvas.getContext('2d');
@@ -667,8 +672,8 @@
                     const alpha = imgData[idx + 3];
                     if (alpha > 40) {
                         points.push({
-                            x: (x - cx) / 145.0,
-                            y: -(y - cy) / 145.0,
+                            x: (x - cx) / 160.0,
+                            y: -(y - cy) / 160.0,
                             r: imgData[idx] / 255,
                             g: imgData[idx + 1] / 255,
                             b: imgData[idx + 2] / 255
@@ -690,22 +695,38 @@
             }
         }
 
-        // Menghitung posisi kupu-kupu tiap frame supaya sayapnya benar-benar mengepak
-        // (rotasi di sekitar sumbu badan/vertikal, membuat sayap membuka & menutup)
+        // Menghitung posisi kupu-kupu tiap frame supaya sayapnya benar-benar mengepak:
+        // tiap sisi sayap diputar sebagai benda kaku di sekitar titik ENGSEL dekat badan,
+        // jadi ujung sayap benar-benar berayun naik-turun di layar (bukan cuma menipis/menebal).
+        // Badan & antena (x mendekati 0) nyaris tidak ikut bergerak, persis seperti aslinya.
         function updateButterflyPositions() {
-            const t = Date.now() * 0.0045;
-            const flap = Math.sin(t) * 0.85; // sudut kepakan (radian)
+            const t = Date.now() * 0.0032;
+            // downstroke lebih cepat & tegas daripada upstroke, seperti kepakan asli
+            const flap = Math.pow(Math.abs(Math.sin(t)), 0.7) * Math.sign(Math.sin(t)) * 0.95;
             const cosF = Math.cos(flap);
             const sinF = Math.sin(flap);
-            const bounce = Math.sin(t * 2) * 0.04; // sedikit gerak naik-turun mengikuti kepakan
+            const hingeY = -0.05; // titik engsel kira-kira di dekat dada, sedikit di atas tengah badan
 
             for (let i = 0; i < NUM_PARTICLES; i++) {
                 const bx = posButterflyBase[i * 3];
                 const by = posButterflyBase[i * 3 + 1];
                 const bz = posButterflyBase[i * 3 + 2];
-                posButterflyAnimated[i * 3]     = bx * cosF - bz * sinF;
-                posButterflyAnimated[i * 3 + 1] = by + Math.abs(bx) * bounce;
-                posButterflyAnimated[i * 3 + 2] = bx * sinF + bz * cosF;
+                const side = bx >= 0 ? 1 : -1;
+                const hingeX = side * 0.1; // engsel dekat pangkal sayap, bukan pusat badan
+
+                const lx = bx - hingeX;
+                const ly = by - hingeY;
+
+                // Rotasi benda-kaku di sekitar sumbu tegak lurus layar (Z) yang melewati titik engsel:
+                // ini membuat ujung sayap benar-benar bergerak naik & turun di layar (sumbu Y),
+                // bukan cuma maju-mundur ke kedalaman (Z) yang tak terlihat kamera.
+                const rx = lx * cosF - ly * sinF;
+                const ry = lx * sinF + ly * cosF;
+
+                posButterflyAnimated[i * 3]     = hingeX + rx;
+                posButterflyAnimated[i * 3 + 1] = hingeY + ry;
+                // sedikit gerak kedalaman mengikuti kepakan supaya tetap terasa 3D, bukan datar
+                posButterflyAnimated[i * 3 + 2] = bz + lx * sinF * 0.25;
             }
         }
 
