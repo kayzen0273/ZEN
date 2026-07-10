@@ -518,50 +518,163 @@
 
         // ==========================================
         // BENTUK KUPU-KUPU REALISTIS (Mode 7 - gestur 🤘)
-        // Digambar di canvas 2D (emoji kupu-kupu) lalu di-raster jadi ribuan
-        // titik partikel yang MENGISI PENUH siluetnya (bukan cuma garis acak),
-        // warnanya diambil langsung dari piksel gambar aslinya.
+        // Sayap digambar manual di canvas 2D (bukan emoji) dengan gradasi warna,
+        // urat sayap, tepi hitam, dan bintik putih ala kupu-kupu Monarch —
+        // lalu di-raster jadi ribuan titik partikel yang MENGISI PENUH siluetnya.
         // ==========================================
+        function drawMonarchWing(ctx, isFore) {
+            // Semua koordinat memakai sisi kanan (x positif); sisi kiri dibuat lewat ctx.scale(-1,1) oleh pemanggil.
+            ctx.save();
+            let path, tipX, tipY, gradEndX, gradEndY;
+
+            if (isFore) {
+                // Sayap depan: lebih besar, meruncing ke ujung
+                path = new Path2D();
+                path.moveTo(10, -55);
+                path.bezierCurveTo(55, -175, 190, -195, 250, -105);
+                path.bezierCurveTo(235, -35, 175, 35, 95, 45);
+                path.bezierCurveTo(50, 15, 18, -15, 10, -55);
+                path.closePath();
+                tipX = 250; tipY = -105;
+                gradEndX = 250; gradEndY = -105;
+            } else {
+                // Sayap belakang: lebih kecil dan bulat
+                path = new Path2D();
+                path.moveTo(6, 5);
+                path.bezierCurveTo(65, 15, 140, 55, 158, 130);
+                path.bezierCurveTo(145, 172, 90, 190, 42, 158);
+                path.bezierCurveTo(14, 128, 4, 55, 6, 5);
+                path.closePath();
+                tipX = 158; tipY = 130;
+                gradEndX = 158; gradEndY = 130;
+            }
+
+            // --- Gradasi dasar oranye (terang dekat badan, gelap ke ujung) ---
+            const grad = ctx.createLinearGradient(0, 0, gradEndX, gradEndY);
+            grad.addColorStop(0, '#ffb648');
+            grad.addColorStop(0.45, '#ff8c1a');
+            grad.addColorStop(1, '#c2500a');
+            ctx.fillStyle = grad;
+            ctx.fill(path);
+
+            // --- Zona gelap di ujung/tepi sayap (khas pola Monarch) ---
+            ctx.save();
+            ctx.clip(path);
+            ctx.fillStyle = 'rgba(20,14,10,0.92)';
+            ctx.beginPath();
+            if (isFore) {
+                ctx.moveTo(140, -190);
+                ctx.bezierCurveTo(200, -180, 245, -140, 250, -95);
+                ctx.bezierCurveTo(220, -110, 175, -140, 140, -190);
+                ctx.closePath();
+                ctx.fill();
+                // bintik putih di zona gelap ujung sayap depan
+                ctx.fillStyle = 'rgba(255,255,250,0.95)';
+                const spots = [[175,-165],[200,-150],[220,-130],[195,-118],[165,-140]];
+                spots.forEach(([sx,sy]) => { ctx.beginPath(); ctx.arc(sx, sy, 6.5, 0, Math.PI*2); ctx.fill(); });
+            } else {
+                ctx.moveTo(80, 150);
+                ctx.bezierCurveTo(120, 145, 150, 120, 158, 90);
+                ctx.bezierCurveTo(150, 130, 120, 165, 80, 170);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,250,0.9)';
+                const spots2 = [[95,155],[115,150],[135,130],[105,168]];
+                spots2.forEach(([sx,sy]) => { ctx.beginPath(); ctx.arc(sx, sy, 5.5, 0, Math.PI*2); ctx.fill(); });
+                // bercak hitam besar khas dekat badan pada sayap belakang
+                ctx.fillStyle = 'rgba(20,14,10,0.85)';
+                ctx.beginPath(); ctx.arc(30, 55, 9, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(55, 90, 7, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.restore();
+
+            // --- Urat sayap (garis hitam tipis menjalar dari pangkal ke tepi) ---
+            ctx.save();
+            ctx.clip(path);
+            ctx.strokeStyle = 'rgba(25,16,10,0.55)';
+            ctx.lineWidth = isFore ? 3.2 : 2.6;
+            ctx.lineCap = 'round';
+            const veinCount = isFore ? 6 : 5;
+            for (let v = 0; v < veinCount; v++) {
+                const t = v / (veinCount - 1);
+                const endX = tipX * (0.55 + t * 0.5);
+                const endY = tipY * (0.35 + t * 0.75);
+                ctx.beginPath();
+                ctx.moveTo(8, isFore ? -40 : 15);
+                ctx.quadraticCurveTo(endX * 0.5, endY * 0.5, endX, endY);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // --- Tepi luar sayap (outline hitam) ---
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = 'rgba(15,10,8,0.9)';
+            ctx.stroke(path);
+
+            ctx.restore();
+        }
+
         function generateButterfly() {
-            const size = 500;
+            const size = 620;
+            const cx = size / 2, cy = size / 2 + 10;
             const offCanvas = document.createElement('canvas');
             offCanvas.width = size; offCanvas.height = size;
             const ctx = offCanvas.getContext('2d');
             ctx.clearRect(0, 0, size, size);
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.font = (size * 0.86) + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
-            ctx.fillText('🦋', size / 2, size / 2 + size * 0.03);
+            ctx.translate(cx, cy);
 
+            // Sayap belakang dulu (di bawah), lalu sayap depan (di atas) — kanan & kiri (dicerminkan)
+            drawMonarchWing(ctx, false);
+            ctx.save(); ctx.scale(-1, 1); drawMonarchWing(ctx, false); ctx.restore();
+            drawMonarchWing(ctx, true);
+            ctx.save(); ctx.scale(-1, 1); drawMonarchWing(ctx, true); ctx.restore();
+
+            // --- Badan (gradasi coklat gelap, sedikit berbulu) ---
+            const bodyGrad = ctx.createLinearGradient(0, -145, 0, 165);
+            bodyGrad.addColorStop(0, '#2a1c14');
+            bodyGrad.addColorStop(1, '#140d0a');
+            ctx.fillStyle = bodyGrad;
+            ctx.beginPath();
+            ctx.moveTo(-9, -140);
+            ctx.bezierCurveTo(-13, -60, -11, 60, -7, 160);
+            ctx.bezierCurveTo(0, 168, 0, 168, 7, 160);
+            ctx.bezierCurveTo(11, 60, 13, -60, 9, -140);
+            ctx.bezierCurveTo(4, -152, -4, -152, -9, -140);
+            ctx.closePath();
+            ctx.fill();
+
+            // --- Kepala ---
+            ctx.beginPath(); ctx.fillStyle = '#1c130d'; ctx.arc(0, -148, 15, 0, Math.PI * 2); ctx.fill();
+
+            // --- Antena (melengkung ke atas dengan ujung membulat khas kupu-kupu) ---
+            ctx.strokeStyle = '#150e09';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            [-1, 1].forEach(side => {
+                ctx.beginPath();
+                ctx.moveTo(side * 6, -155);
+                ctx.quadraticCurveTo(side * 45, -215, side * 62, -245);
+                ctx.stroke();
+                ctx.beginPath(); ctx.fillStyle = '#150e09'; ctx.arc(side * 62, -245, 6, 0, Math.PI * 2); ctx.fill();
+            });
+
+            // --- Rasterisasi: ambil semua piksel yang tergambar jadi kandidat titik partikel ---
             const imgData = ctx.getImageData(0, 0, size, size).data;
             const points = [];
-            for (let y = 0; y < size; y += 1) {
-                for (let x = 0; x < size; x += 1) {
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
                     const idx = ((y * size) + x) * 4;
                     const alpha = imgData[idx + 3];
-                    if (alpha > 80) {
+                    if (alpha > 40) {
                         points.push({
-                            x: (x - size / 2) / 135.0,
-                            y: -(y - size / 2) / 135.0,
+                            x: (x - cx) / 145.0,
+                            y: -(y - cy) / 145.0,
                             r: imgData[idx] / 255,
                             g: imgData[idx + 1] / 255,
                             b: imgData[idx + 2] / 255
                         });
                     }
                 }
-            }
-
-            // Fallback kalau font emoji berwarna tidak tersedia (hasil kosong/hitam-putih polos)
-            if (points.length < 200) {
-                for (let i = 0; i < NUM_PARTICLES; i++) {
-                    const t = (i / NUM_PARTICLES) * Math.PI * 2;
-                    const wobble = Math.sin(t * 6) * 0.15;
-                    posButterflyBase[i * 3] = Math.sin(t) * (1.6 + wobble);
-                    posButterflyBase[i * 3 + 1] = Math.cos(t) * 0.9;
-                    posButterflyBase[i * 3 + 2] = 0;
-                    colButterfly[i * 3] = 0.95; colButterfly[i * 3 + 1] = 0.45; colButterfly[i * 3 + 2] = 0.1;
-                }
-                return;
             }
 
             for (let i = 0; i < NUM_PARTICLES; i++) {
@@ -810,6 +923,9 @@
 
             geometry.attributes.position.needsUpdate = true;
             geometry.attributes.color.needsUpdate = true;
+
+            // Titik lebih kecil & rapat khusus mode kupu-kupu supaya detail sayap (urat, bintik, gradasi) terlihat halus
+            material.size = (currentMode === 7) ? 0.075 : 0.15;
 
             if ([2, 3, 4, 5, 7, 9].includes(currentMode)) {
                 particleSystem.position.set(handCurrent.x, handCurrent.y, handCurrent.z);
