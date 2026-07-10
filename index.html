@@ -316,10 +316,9 @@
         const posHeart = new Float32Array(NUM_PARTICLES * 3);
         const posSely = new Float32Array(NUM_PARTICLES * 3);
         const posGalaxy = new Float32Array(NUM_PARTICLES * 3);
-        const posDNA = new Float32Array(NUM_PARTICLES * 3);
-        const posButterflyBase = new Float32Array(NUM_PARTICLES * 3); // Mode 7: bentuk kupu-kupu saat diam (rest pose)
-        const posButterflyAnimated = new Float32Array(NUM_PARTICLES * 3); // Mode 7: posisi setelah dianimasikan kepakan sayap
-        const colButterfly = new Float32Array(NUM_PARTICLES * 3); // Mode 7: pola warna kupu-kupu (oranye/hitam/putih ala monarch)
+        const posButterflyBase = new Float32Array(NUM_PARTICLES * 3); // bentuk dasar kupu-kupu (belum mengepak)
+        const posButterfly = new Float32Array(NUM_PARTICLES * 3); // hasil animasi kepakan tiap frame
+        const butterflyCategory = new Uint8Array(NUM_PARTICLES); // 0=badan 1=antena 2=sayap 3=urat 4=cincin bintik 5=pusat bintik
         const posPray = new Float32Array(NUM_PARTICLES * 3); // Mode 9: ZEN + HATI + SELY (vertikal)
         const PRAY_ZEN_COUNT = Math.floor(NUM_PARTICLES * 0.34);
         const PRAY_HEART_COUNT = Math.floor(NUM_PARTICLES * 0.33);
@@ -412,35 +411,78 @@
                 posGalaxy[i*3+2] = radius * Math.sin(angle);
             }
 
-            // DNA HELIX (Mode 7)
-            const dnaHeight = 3.6;
-            const dnaRadius = 0.9;
-            const dnaTurns = 3;
+            // KUPU-KUPU / BUTTERFLY (Mode 7) - badan + 2 pasang sayap (forewing & hindwing)
+            // simetris kiri-kanan, dengan urat sayap & bintik mata, siap dianimasikan mengepak
             for (let i = 0; i < NUM_PARTICLES; i++) {
-                if (i % 10 === 0) {
-                    // Partikel "anak tangga" yang menghubungkan dua untai DNA
-                    let tt = (Math.floor(i / 10) / (NUM_PARTICLES / 10)) * dnaHeight - dnaHeight / 2;
-                    let angle = (tt / dnaHeight) * dnaTurns * Math.PI * 2;
-                    let frac = Math.random();
-                    let rx1 = dnaRadius * Math.cos(angle);
-                    let rz1 = dnaRadius * Math.sin(angle);
-                    let rx2 = dnaRadius * Math.cos(angle + Math.PI);
-                    let rz2 = dnaRadius * Math.sin(angle + Math.PI);
-                    posDNA[i*3]   = rx1 + (rx2 - rx1) * frac;
-                    posDNA[i*3+1] = tt;
-                    posDNA[i*3+2] = rz1 + (rz2 - rz1) * frac;
-                } else {
-                    let strand = i % 2;
-                    let tt = (i / NUM_PARTICLES) * dnaHeight - dnaHeight / 2;
-                    let angle = (tt / dnaHeight) * dnaTurns * Math.PI * 2 + (strand === 1 ? Math.PI : 0);
-                    posDNA[i*3]   = dnaRadius * Math.cos(angle) + (Math.random() - 0.5) * 0.05;
-                    posDNA[i*3+1] = tt;
-                    posDNA[i*3+2] = dnaRadius * Math.sin(angle) + (Math.random() - 0.5) * 0.05;
-                }
-            }
+                const r1 = Math.random();
+                let x = 0, y = 0, z = (Math.random() - 0.5) * 0.05;
+                let category = 2; // default: permukaan sayap
 
-            // KUPU-KUPU REALISTIS (Mode 7 - gestur 🤘)
-            generateButterfly();
+                if (r1 < 0.10) {
+                    // BADAN - kapsul tipis vertikal di tengah
+                    category = 0;
+                    const t = Math.random();
+                    y = (t - 0.5) * 1.7;
+                    const bodyR = 0.07 * (1 - Math.pow(Math.abs(t - 0.5) * 2, 2) * 0.5);
+                    const a = Math.random() * Math.PI * 2;
+                    x = Math.cos(a) * bodyR;
+                    z += Math.sin(a) * bodyR;
+                } else if (r1 < 0.13) {
+                    // ANTENA - dua garis melengkung dari kepala (atas badan)
+                    category = 1;
+                    const side = (i % 2 === 0) ? 1 : -1;
+                    const t = Math.random();
+                    x = side * (0.04 + t * 0.32 + Math.sin(t * Math.PI * 0.5) * 0.14);
+                    y = 0.85 + t * 0.5;
+                    z += Math.sin(t * Math.PI) * 0.08;
+                } else {
+                    // SAYAP - pilih kanan/kiri, lalu forewing (atas, besar) / hindwing (bawah, kecil)
+                    const isRight = r1 < 0.13 + (1 - 0.13) / 2;
+                    const isForewing = Math.random() < 0.58;
+
+                    let cx, cy, rx, ry, tilt;
+                    if (isForewing) {
+                        cx = 0.85; cy = 0.55; rx = 1.05; ry = 0.82; tilt = -0.28;
+                    } else {
+                        cx = 0.62; cy = -0.55; rx = 0.82; ry = 0.68; tilt = 0.35;
+                    }
+
+                    const theta = Math.random() * Math.PI * 2;
+                    // riak halus di tepi supaya garis luar sayap tidak sempurna elips (efek sayap "bergerigi" alami)
+                    const ripple = 1 + 0.07 * Math.sin(theta * 6 + (isForewing ? 0 : 2));
+                    const rad = Math.sqrt(Math.random()) * ripple;
+                    const lx = Math.cos(theta) * rad * rx;
+                    const ly = Math.sin(theta) * rad * ry;
+                    const cosT = Math.cos(tilt), sinT = Math.sin(tilt);
+                    const rlx = lx * cosT - ly * sinT;
+                    const rly = lx * sinT + ly * cosT;
+
+                    let wx = cx + rlx;
+                    let wy = cy + rly;
+
+                    // urat sayap (vena) memancar dari titik engsel dekat badan
+                    const hingeX = 0.05, hingeY = isForewing ? 0.35 : -0.15;
+                    const angFromHinge = Math.atan2(wy - hingeY, wx - hingeX);
+                    const veinCount = 6;
+                    const veinPhase = ((angFromHinge / (Math.PI * 2)) * veinCount + 10) % 1;
+                    const nearVein = Math.min(veinPhase, 1 - veinPhase) < 0.045;
+
+                    // bintik mata (eyespot) di forewing
+                    const spotCx = 1.05, spotCy = 0.65, spotR = 0.16;
+                    const distSpot = Math.hypot(wx - spotCx, wy - spotCy);
+
+                    if (nearVein) category = 3;
+                    if (isForewing && distSpot < spotR) category = distSpot < spotR * 0.45 ? 5 : 4;
+
+                    x = isRight ? wx : -wx;
+                    y = wy;
+                }
+
+                posButterflyBase[i*3]   = x;
+                posButterflyBase[i*3+1] = y;
+                posButterflyBase[i*3+2] = z;
+                butterflyCategory[i] = category;
+            }
 
             // ZEN + HATI + SELY (Mode 9) - disusun VERTIKAL: teks "ZEN" (atas),
             // bentuk hati (tengah), lalu teks "SELY" (bawah)
@@ -513,220 +555,6 @@
                     posPray[i*3+1] = p.y - 2.4; // posisi BAWAH
                     posPray[i*3+2] = p.z;
                 }
-            }
-        }
-
-        // ==========================================
-        // BENTUK KUPU-KUPU REALISTIS (Mode 7 - gestur 🤘)
-        // Sayap digambar manual di canvas 2D (bukan emoji) dengan gradasi warna,
-        // urat sayap, tepi hitam, dan bintik putih ala kupu-kupu Monarch —
-        // lalu di-raster jadi ribuan titik partikel yang MENGISI PENUH siluetnya.
-        // ==========================================
-        function drawMonarchWing(ctx, isFore) {
-            // Semua koordinat memakai sisi kanan (x positif); sisi kiri dibuat lewat ctx.scale(-1,1) oleh pemanggil.
-            ctx.save();
-            let path, tipX, tipY, gradEndX, gradEndY;
-
-            if (isFore) {
-                // Sayap depan: memanjang, ujung (apex) meruncing khas kupu-kupu, tepi dalam sedikit cekung
-                path = new Path2D();
-                path.moveTo(12, -50);
-                path.bezierCurveTo(35, -160, 130, -225, 220, -190);
-                path.bezierCurveTo(268, -170, 285, -130, 265, -85);
-                path.bezierCurveTo(250, -55, 210, -20, 150, 10);
-                path.bezierCurveTo(105, 30, 65, 20, 40, -5);
-                path.bezierCurveTo(22, -22, 13, -35, 12, -50);
-                path.closePath();
-                tipX = 235; tipY = -178;
-                gradEndX = 235; gradEndY = -178;
-            } else {
-                // Sayap belakang: lebih kecil & bulat, tepi luar sedikit bergelombang (scalloped) khas kupu-kupu asli
-                path = new Path2D();
-                path.moveTo(6, -5);
-                path.bezierCurveTo(60, 5, 130, 45, 155, 110);
-                path.bezierCurveTo(160, 130, 152, 142, 145, 155);
-                path.bezierCurveTo(130, 148, 128, 165, 110, 172);
-                path.bezierCurveTo(90, 165, 88, 180, 68, 178);
-                path.bezierCurveTo(35, 165, 12, 130, 6, 80);
-                path.bezierCurveTo(3, 50, 3, 15, 6, -5);
-                path.closePath();
-                tipX = 145; tipY = 155;
-                gradEndX = 145; gradEndY = 155;
-            }
-
-            // --- Gradasi dasar oranye (terang dekat badan, gelap ke ujung) ---
-            const grad = ctx.createLinearGradient(0, 0, gradEndX, gradEndY);
-            grad.addColorStop(0, '#ffb648');
-            grad.addColorStop(0.45, '#ff8c1a');
-            grad.addColorStop(1, '#c2500a');
-            ctx.fillStyle = grad;
-            ctx.fill(path);
-
-            // --- Zona gelap di ujung/tepi sayap (khas pola Monarch) ---
-            ctx.save();
-            ctx.clip(path);
-            ctx.fillStyle = 'rgba(20,14,10,0.92)';
-            ctx.beginPath();
-            if (isFore) {
-                ctx.moveTo(150, -215);
-                ctx.bezierCurveTo(210, -205, 260, -165, 262, -115);
-                ctx.bezierCurveTo(230, -130, 185, -165, 150, -215);
-                ctx.closePath();
-                ctx.fill();
-                // bintik putih di zona gelap ujung sayap depan
-                ctx.fillStyle = 'rgba(255,255,250,0.95)';
-                const spots = [[190,-185],[215,-170],[235,-145],[210,-130],[180,-160]];
-                spots.forEach(([sx,sy]) => { ctx.beginPath(); ctx.arc(sx, sy, 6.5, 0, Math.PI*2); ctx.fill(); });
-            } else {
-                ctx.moveTo(75, 150);
-                ctx.bezierCurveTo(115, 145, 145, 120, 152, 95);
-                ctx.bezierCurveTo(148, 130, 120, 162, 75, 168);
-                ctx.closePath();
-                ctx.fill();
-                ctx.fillStyle = 'rgba(255,255,250,0.9)';
-                const spots2 = [[95,155],[112,148],[130,128],[100,165]];
-                spots2.forEach(([sx,sy]) => { ctx.beginPath(); ctx.arc(sx, sy, 5.5, 0, Math.PI*2); ctx.fill(); });
-                // bercak hitam besar khas dekat badan pada sayap belakang
-                ctx.fillStyle = 'rgba(20,14,10,0.85)';
-                ctx.beginPath(); ctx.arc(28, 50, 9, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(50, 85, 7, 0, Math.PI*2); ctx.fill();
-            }
-            ctx.restore();
-
-            // --- Urat sayap (garis hitam tipis menjalar dari pangkal ke tepi) ---
-            ctx.save();
-            ctx.clip(path);
-            ctx.strokeStyle = 'rgba(25,16,10,0.55)';
-            ctx.lineWidth = isFore ? 3.2 : 2.6;
-            ctx.lineCap = 'round';
-            const veinCount = isFore ? 6 : 5;
-            for (let v = 0; v < veinCount; v++) {
-                const t = v / (veinCount - 1);
-                const endX = tipX * (0.55 + t * 0.5);
-                const endY = tipY * (0.35 + t * 0.75);
-                ctx.beginPath();
-                ctx.moveTo(8, isFore ? -40 : 15);
-                ctx.quadraticCurveTo(endX * 0.5, endY * 0.5, endX, endY);
-                ctx.stroke();
-            }
-            ctx.restore();
-
-            // --- Tepi luar sayap (outline hitam) ---
-            ctx.lineWidth = 5;
-            ctx.strokeStyle = 'rgba(15,10,8,0.9)';
-            ctx.stroke(path);
-
-            ctx.restore();
-        }
-
-        function generateButterfly() {
-            const size = 680;
-            const cx = size / 2, cy = size / 2 + 15;
-            const offCanvas = document.createElement('canvas');
-            offCanvas.width = size; offCanvas.height = size;
-            const ctx = offCanvas.getContext('2d');
-            ctx.clearRect(0, 0, size, size);
-            ctx.translate(cx, cy);
-
-            // Sayap belakang dulu (di bawah), lalu sayap depan (di atas) — kanan & kiri (dicerminkan)
-            drawMonarchWing(ctx, false);
-            ctx.save(); ctx.scale(-1, 1); drawMonarchWing(ctx, false); ctx.restore();
-            drawMonarchWing(ctx, true);
-            ctx.save(); ctx.scale(-1, 1); drawMonarchWing(ctx, true); ctx.restore();
-
-            // --- Badan (gradasi coklat gelap, sedikit berbulu) ---
-            const bodyGrad = ctx.createLinearGradient(0, -145, 0, 165);
-            bodyGrad.addColorStop(0, '#2a1c14');
-            bodyGrad.addColorStop(1, '#140d0a');
-            ctx.fillStyle = bodyGrad;
-            ctx.beginPath();
-            ctx.moveTo(-9, -140);
-            ctx.bezierCurveTo(-13, -60, -11, 60, -7, 160);
-            ctx.bezierCurveTo(0, 168, 0, 168, 7, 160);
-            ctx.bezierCurveTo(11, 60, 13, -60, 9, -140);
-            ctx.bezierCurveTo(4, -152, -4, -152, -9, -140);
-            ctx.closePath();
-            ctx.fill();
-
-            // --- Kepala ---
-            ctx.beginPath(); ctx.fillStyle = '#1c130d'; ctx.arc(0, -148, 15, 0, Math.PI * 2); ctx.fill();
-
-            // --- Antena (melengkung ke atas dengan ujung membulat khas kupu-kupu) ---
-            ctx.strokeStyle = '#150e09';
-            ctx.lineWidth = 4;
-            ctx.lineCap = 'round';
-            [-1, 1].forEach(side => {
-                ctx.beginPath();
-                ctx.moveTo(side * 6, -155);
-                ctx.quadraticCurveTo(side * 45, -215, side * 62, -245);
-                ctx.stroke();
-                ctx.beginPath(); ctx.fillStyle = '#150e09'; ctx.arc(side * 62, -245, 6, 0, Math.PI * 2); ctx.fill();
-            });
-
-            // --- Rasterisasi: ambil semua piksel yang tergambar jadi kandidat titik partikel ---
-            const imgData = ctx.getImageData(0, 0, size, size).data;
-            const points = [];
-            for (let y = 0; y < size; y++) {
-                for (let x = 0; x < size; x++) {
-                    const idx = ((y * size) + x) * 4;
-                    const alpha = imgData[idx + 3];
-                    if (alpha > 40) {
-                        points.push({
-                            x: (x - cx) / 160.0,
-                            y: -(y - cy) / 160.0,
-                            r: imgData[idx] / 255,
-                            g: imgData[idx + 1] / 255,
-                            b: imgData[idx + 2] / 255
-                        });
-                    }
-                }
-            }
-
-            for (let i = 0; i < NUM_PARTICLES; i++) {
-                const p = points[Math.floor(Math.random() * points.length)];
-                // sedikit offset kedalaman acak supaya partikel tidak menumpuk rata di satu bidang datar (terlihat lebih padat & bervolume)
-                const depth = (Math.random() - 0.5) * (0.06 + Math.abs(p.x) * 0.05);
-                posButterflyBase[i * 3] = p.x;
-                posButterflyBase[i * 3 + 1] = p.y;
-                posButterflyBase[i * 3 + 2] = depth;
-                colButterfly[i * 3] = p.r;
-                colButterfly[i * 3 + 1] = p.g;
-                colButterfly[i * 3 + 2] = p.b;
-            }
-        }
-
-        // Menghitung posisi kupu-kupu tiap frame supaya sayapnya benar-benar mengepak:
-        // tiap sisi sayap diputar sebagai benda kaku di sekitar titik ENGSEL dekat badan,
-        // jadi ujung sayap benar-benar berayun naik-turun di layar (bukan cuma menipis/menebal).
-        // Badan & antena (x mendekati 0) nyaris tidak ikut bergerak, persis seperti aslinya.
-        function updateButterflyPositions() {
-            const t = Date.now() * 0.0032;
-            // downstroke lebih cepat & tegas daripada upstroke, seperti kepakan asli
-            const flap = Math.pow(Math.abs(Math.sin(t)), 0.7) * Math.sign(Math.sin(t)) * 0.95;
-            const cosF = Math.cos(flap);
-            const sinF = Math.sin(flap);
-            const hingeY = -0.05; // titik engsel kira-kira di dekat dada, sedikit di atas tengah badan
-
-            for (let i = 0; i < NUM_PARTICLES; i++) {
-                const bx = posButterflyBase[i * 3];
-                const by = posButterflyBase[i * 3 + 1];
-                const bz = posButterflyBase[i * 3 + 2];
-                const side = bx >= 0 ? 1 : -1;
-                const hingeX = side * 0.1; // engsel dekat pangkal sayap, bukan pusat badan
-
-                const lx = bx - hingeX;
-                const ly = by - hingeY;
-
-                // Rotasi benda-kaku di sekitar sumbu tegak lurus layar (Z) yang melewati titik engsel:
-                // ini membuat ujung sayap benar-benar bergerak naik & turun di layar (sumbu Y),
-                // bukan cuma maju-mundur ke kedalaman (Z) yang tak terlihat kamera.
-                const rx = lx * cosF - ly * sinF;
-                const ry = lx * sinF + ly * cosF;
-
-                posButterflyAnimated[i * 3]     = hingeX + rx;
-                posButterflyAnimated[i * 3 + 1] = hingeY + ry;
-                // sedikit gerak kedalaman mengikuti kepakan supaya tetap terasa 3D, bukan datar
-                posButterflyAnimated[i * 3 + 2] = bz + lx * sinF * 0.25;
             }
         }
 
@@ -811,7 +639,6 @@
         const loveCaptions = {
             4: "Untuk kamu, dengan sepenuh hati 💖",
             5: "Kamu spesial banget buat aku 🫰",
-            7: "Cinta kita seindah kupu-kupu yang terbang bebas 🦋",
             9: "aku mau kamu jadi milik ku selamanya 🤟"
         };
         function updateCaption(mode) {
@@ -901,7 +728,21 @@
             else if (currentMode === 3) { targetPosArray = posText; rotationAngle = 0; }
             else if (currentMode === 4) { targetPosArray = posHeart; rotationAngle += 0.015; }
             else if (currentMode === 5) { targetPosArray = posSely; rotationAngle = 0; }
-            else if (currentMode === 7) { updateButterflyPositions(); targetPosArray = posButterflyAnimated; rotationAngle += 0.008; }
+            else if (currentMode === 7) {
+                // KUPU-KUPU: hitung ulang posisi sayap tiap frame supaya mengepak naik-turun.
+                // Sayap dirotasi kaku terhadap sumbu badan (garis engsel di x=0), jadi badan tetap diam.
+                const flap = Math.sin(Date.now() * 0.0065) * 0.6;
+                const cosF = Math.cos(flap), sinF = Math.sin(flap);
+                for (let k = 0; k < NUM_PARTICLES; k++) {
+                    const bx = posButterflyBase[k*3];
+                    const bz = posButterflyBase[k*3+2];
+                    posButterfly[k*3]   = bx * cosF - bz * sinF;
+                    posButterfly[k*3+1] = posButterflyBase[k*3+1];
+                    posButterfly[k*3+2] = bx * sinF + bz * cosF;
+                }
+                targetPosArray = posButterfly;
+                rotationAngle += 0.008;
+            }
             else if (currentMode === 9) { targetPosArray = posPray; rotationAngle = 0; }
 
             const posAttr = geometry.attributes.position.array;
@@ -922,8 +763,23 @@
                     colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.1; colAttr[i*3+2] = 0.4;
                 } else if (currentMode === 5) { // Ungu Sely
                     colAttr[i*3] = 0.8; colAttr[i*3+1] = 0.2; colAttr[i*3+2] = 1.0;
-                } else if (currentMode === 7) { // Kupu-kupu - warna oranye/hitam/putih ala Monarch dari pola yang sudah digenerate
-                    colAttr[i*3] = colButterfly[i*3]; colAttr[i*3+1] = colButterfly[i*3+1]; colAttr[i*3+2] = colButterfly[i*3+2];
+                } else if (currentMode === 7) { // KUPU-KUPU: warna berbeda tiap bagian (badan, antena, sayap, urat, bintik mata)
+                    const cat = butterflyCategory[i];
+                    if (cat === 0) { // badan - coklat gelap kehitaman
+                        colAttr[i*3] = 0.28; colAttr[i*3+1] = 0.16; colAttr[i*3+2] = 0.12;
+                    } else if (cat === 1) { // antena - hitam kecoklatan
+                        colAttr[i*3] = 0.2; colAttr[i*3+1] = 0.12; colAttr[i*3+2] = 0.1;
+                    } else if (cat === 3) { // urat sayap - garis ungu gelap
+                        colAttr[i*3] = 0.18; colAttr[i*3+1] = 0.05; colAttr[i*3+2] = 0.22;
+                    } else if (cat === 4) { // cincin bintik mata - hampir hitam
+                        colAttr[i*3] = 0.05; colAttr[i*3+1] = 0.02; colAttr[i*3+2] = 0.05;
+                    } else if (cat === 5) { // pusat bintik mata - keemasan terang
+                        colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.9; colAttr[i*3+2] = 0.5;
+                    } else { // permukaan sayap - ungu-pink cerah bernuansa galaksi/cinta
+                        colAttr[i*3]   = 0.75 + Math.random() * 0.2;
+                        colAttr[i*3+1] = 0.15 + Math.random() * 0.15;
+                        colAttr[i*3+2] = 0.85 + Math.random() * 0.15;
+                    }
                 } else if (currentMode === 9) { // ZEN (emas lembut) + HATI (pink) + SELY (putih keunguan)
                     if (i < PRAY_ZEN_COUNT) {
                         colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.85; colAttr[i*3+2] = 0.55;
@@ -944,9 +800,6 @@
 
             geometry.attributes.position.needsUpdate = true;
             geometry.attributes.color.needsUpdate = true;
-
-            // Titik lebih kecil & rapat khusus mode kupu-kupu supaya detail sayap (urat, bintik, gradasi) terlihat halus
-            material.size = (currentMode === 7) ? 0.075 : 0.15;
 
             if ([2, 3, 4, 5, 7, 9].includes(currentMode)) {
                 particleSystem.position.set(handCurrent.x, handCurrent.y, handCurrent.z);
