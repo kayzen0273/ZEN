@@ -248,7 +248,7 @@
             3: "TEKS I LOVE YOU (2 Jari / Peace)",
             4: "BENTUK HATI (Tangan Mengepal)",
             5: "SELY 🫰 (Finger Heart)",
-            7: "UBUR-UBUR KEREN 🪼 (Rock Sign)",
+            7: "KUPU-KUPU CANTIK 🦋 (Rock Sign)",
             9: "ZEN & CINTA 🤟 (I Love You Sign)"
         };
 
@@ -316,16 +316,13 @@
         const posHeart = new Float32Array(NUM_PARTICLES * 3);
         const posSely = new Float32Array(NUM_PARTICLES * 3);
         const posGalaxy = new Float32Array(NUM_PARTICLES * 3);
-        const posJellyfish = new Float32Array(NUM_PARTICLES * 3);
+        const posButterfly = new Float32Array(NUM_PARTICLES * 3);
         const posPray = new Float32Array(NUM_PARTICLES * 3); // Mode 9: ZEN + HATI + SELY (vertikal)
         const PRAY_ZEN_COUNT = Math.floor(NUM_PARTICLES * 0.34);
         const PRAY_HEART_COUNT = Math.floor(NUM_PARTICLES * 0.33);
-        const JELLY_BELL_COUNT = Math.floor(NUM_PARTICLES * 0.25); // Mode 7: partikel lonceng/kepala ubur-ubur
-        const JELLY_TENTACLES = 16; // jumlah helai tentakel
-        const JELLY_TENTACLE_TOTAL = NUM_PARTICLES - JELLY_BELL_COUNT;
-        const JELLY_PARTICLES_PER_TENTACLE = JELLY_TENTACLE_TOTAL / JELLY_TENTACLES;
-        const JELLY_SCALE = 0.15;
-        const JELLY_Y_OFFSET = 1.3; // biar posisinya center enak dilihat di layar
+        const BUTTERFLY_BODY_COUNT = Math.floor(NUM_PARTICLES * 0.06); // Mode 7: partikel badan kupu-kupu
+        const BUTTERFLY_SCALE = 0.62;
+        const BUTTERFLY_Y_OFFSET = 0.3; // biar posisinya center enak dilihat di layar
 
         generateShapes();
 
@@ -415,53 +412,48 @@
                 posGalaxy[i*3+2] = radius * Math.sin(angle);
             }
 
-            // UBUR-UBUR KEREN 🪼 (Mode 7 - Rock Sign)
-            // Diadaptasi dari partical-interaction.html: lonceng/kepala bulat pipih di atas (25% partikel)
-            // + 16 helai tentakel menjuntai bergelombang ke bawah (75% partikel), diskalakan ke scene ini.
+            // KUPU-KUPU CANTIK 🦋 (Mode 7 - Rock Sign)
+            // Sayap kiri & kanan dibentuk dari kurva matematis kupu-kupu (butterfly curve),
+            // diisi penuh (bukan cuma garis tepi) + badan tipis vertikal di tengah sebagai poros simetri.
             for (let i = 0; i < NUM_PARTICLES; i++) {
                 let x, y, z;
-                if (i < JELLY_BELL_COUNT) {
-                    // Lonceng: kubah bulat, tengah lebih rata & tepi melengkung turun
-                    const u = Math.random() * Math.PI * 2;
+                if (i < BUTTERFLY_BODY_COUNT) {
+                    // Badan kupu-kupu: garis tipis vertikal di tengah + kepala bulat kecil di atas
                     const v = Math.random();
-                    const r = 5 * Math.sqrt(v);
-                    x = r * Math.cos(u);
-                    z = r * Math.sin(u);
-                    const centerFlatness = Math.pow(1 - v, 2);
-                    const edgeCurve = Math.pow(v, 1.5);
-                    y = 6 + centerFlatness * 2 - edgeCurve * 5.5;
+                    x = (Math.random() - 0.5) * 0.12;
+                    y = 3.4 - v * 4.4;
+                    z = (Math.random() - 0.5) * 0.12;
+                    if (v < 0.08) {
+                        // Kepala: gumpalan kecil membulat
+                        const u = Math.random() * Math.PI * 2;
+                        const r = Math.random() * 0.35;
+                        x = Math.cos(u) * r;
+                        z = Math.sin(u) * r;
+                        y = 3.6;
+                    }
                 } else {
-                    // Tentakel: 16 helai menjuntai turun dengan sedikit spiral & lekukan
-                    const idx = i - JELLY_BELL_COUNT;
-                    const tentacleIndex = Math.floor(idx / JELLY_PARTICLES_PER_TENTACLE);
-                    const posInTentacle = (idx % JELLY_PARTICLES_PER_TENTACLE) / JELLY_PARTICLES_PER_TENTACLE;
+                    // Sayap: kurva kupu-kupu klasik r(t) = e^cos(t) - 2cos(4t) + sin(t/12)^5
+                    // t di-random penuh sepanjang siklus supaya kedua sayap (atas & bawah lobus) terisi.
+                    const t = Math.random() * 24 * Math.PI;
+                    const rBase = Math.exp(Math.cos(t)) - 2 * Math.cos(4 * t) + Math.pow(Math.sin(t / 12), 5);
+                    // Faktor acak (akar) supaya area sayap terisi penuh, bukan cuma garis tepi
+                    const fill = Math.sqrt(Math.random());
+                    const r = rBase * fill;
 
-                    const baseAngle = (tentacleIndex / JELLY_TENTACLES) * Math.PI * 2;
-                    const angleVariation = (Math.random() - 0.5) * 0.15;
-                    const angle = baseAngle + angleVariation;
+                    let px = Math.sin(t) * r;
+                    let py = Math.cos(t) * r;
 
-                    const tentacleLengthVariation = 0.8 + Math.random() * 0.4;
-                    const length = Math.pow(posInTentacle, 0.8) * tentacleLengthVariation;
+                    // Pisahkan jadi sayap kiri/kanan dengan sedikit jarak di tengah (badan)
+                    const wingSide = px >= 0 ? 1 : -1;
+                    px = wingSide * (Math.abs(px) + 0.15);
 
-                    const radiusVariation = Math.random();
-                    const startRadius = 2.5 + radiusVariation * 1;
-
-                    const spiral = Math.sin(length * Math.PI * 2 + tentacleIndex * 1.5) * (0.2 + length * 0.3);
-                    const bendPhase = tentacleIndex * 0.5;
-                    const bend = Math.sin(length * Math.PI * 1.2 + bendPhase) * (0.4 + length * 0.4);
-
-                    const radiusExpansion = startRadius + length * 0.15 + Math.abs(bend) * 0.05;
-
-                    x = radiusExpansion * Math.cos(angle) + bend * Math.cos(angle + Math.PI/4) + spiral * Math.cos(angle + Math.PI/2);
-                    z = radiusExpansion * Math.sin(angle) + bend * Math.sin(angle + Math.PI/4) + spiral * Math.sin(angle + Math.PI/2);
-                    y = 2 - radiusVariation * 0.3 - length * 20 - Math.abs(bend) * 0.2;
-
-                    x += (Math.random() - 0.5) * 0.4 * length;
-                    z += (Math.random() - 0.5) * 0.4 * length;
+                    x = px;
+                    y = py + 1.4; // geser ke atas biar sejajar dengan badan
+                    z = (Math.random() - 0.5) * 0.25;
                 }
-                posJellyfish[i*3]   = x * JELLY_SCALE;
-                posJellyfish[i*3+1] = y * JELLY_SCALE + JELLY_Y_OFFSET;
-                posJellyfish[i*3+2] = z * JELLY_SCALE;
+                posButterfly[i*3]   = x * BUTTERFLY_SCALE;
+                posButterfly[i*3+1] = y * BUTTERFLY_SCALE + BUTTERFLY_Y_OFFSET;
+                posButterfly[i*3+2] = z * BUTTERFLY_SCALE;
             }
 
             // ZEN + HATI + SELY (Mode 9) - disusun VERTIKAL: teks "ZEN" (atas),
@@ -590,7 +582,7 @@
                 }
             }
 
-            // 4. Cek Mode UBUR-UBUR KEREN 🪼 (Rock Sign: Telunjuk + Kelingking berdiri, jempol terlipat)
+            // 4. Cek Mode KUPU-KUPU CANTIK 🦋 (Rock Sign: Telunjuk + Kelingking berdiri, jempol terlipat)
             if (fingersUp[0] && !fingersUp[1] && !fingersUp[2] && fingersUp[3]) {
                 return 7;
             }
@@ -708,7 +700,7 @@
             else if (currentMode === 3) { targetPosArray = posText; rotationAngle = 0; }
             else if (currentMode === 4) { targetPosArray = posHeart; rotationAngle += 0.015; }
             else if (currentMode === 5) { targetPosArray = posSely; rotationAngle = 0; }
-            else if (currentMode === 7) { targetPosArray = posJellyfish; rotationAngle += 0.02; }
+            else if (currentMode === 7) { targetPosArray = posButterfly; rotationAngle += 0.02; }
             else if (currentMode === 9) { targetPosArray = posPray; rotationAngle = 0; }
 
             const posAttr = geometry.attributes.position.array;
@@ -729,14 +721,14 @@
                     colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.1; colAttr[i*3+2] = 0.4;
                 } else if (currentMode === 5) { // Ungu Sely
                     colAttr[i*3] = 0.8; colAttr[i*3+1] = 0.2; colAttr[i*3+2] = 1.0;
-                } else if (currentMode === 7) { // UBUR-UBUR KEREN - neon pelangi (cincin radial dari pusat lonceng)
-                    let dx = posJellyfish[i*3];
-                    let dy = posJellyfish[i*3+1] - JELLY_Y_OFFSET;
+                } else if (currentMode === 7) { // KUPU-KUPU CANTIK - gradasi warna-warni lembut dari pusat sayap ke ujung
+                    let dx = posButterfly[i*3];
+                    let dy = posButterfly[i*3+1] - BUTTERFLY_Y_OFFSET;
                     let dist = Math.sqrt(dx*dx + dy*dy);
-                    let huePhase = dist * 2.6 + rotationAngle * 3;
-                    colAttr[i*3]   = 0.5 + Math.sin(huePhase) * 0.5;
-                    colAttr[i*3+1] = 0.5 + Math.sin(huePhase + 2.094) * 0.5;
-                    colAttr[i*3+2] = 0.5 + Math.sin(huePhase + 4.189) * 0.5;
+                    let huePhase = dist * 1.8 + rotationAngle * 2;
+                    colAttr[i*3]   = 0.55 + Math.sin(huePhase) * 0.45;
+                    colAttr[i*3+1] = 0.35 + Math.sin(huePhase + 2.094) * 0.45;
+                    colAttr[i*3+2] = 0.65 + Math.sin(huePhase + 4.189) * 0.35;
                 } else if (currentMode === 9) { // ZEN (emas lembut) + HATI (pink) + SELY (putih keunguan)
                     if (i < PRAY_ZEN_COUNT) {
                         colAttr[i*3] = 1.0; colAttr[i*3+1] = 0.85; colAttr[i*3+2] = 0.55;
