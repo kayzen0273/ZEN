@@ -240,6 +240,8 @@
         let handTarget = { x: 0, y: 0, z: 0 };
         let handCurrent = { x: 0, y: 0, z: -12 };
         let rotationAngle = 0;
+        let lastColorMode = null; // dipakai supaya warna partikel tak dihitung ulang tiap frame bila mode sama
+        window.galaxiloveActive = false; // dipakai animate() utama untuk skip render saat overlay galeri terbuka
 
         // Teks Label Mode
         const modeLabels = {
@@ -267,7 +269,7 @@
         
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
         // Render manual (autoClear = false) supaya bisa bikin efek "jejak komet" (trail)
@@ -690,6 +692,10 @@
         function animate() {
             requestAnimationFrame(animate);
 
+            // Saat overlay Galaksi Cinta terbuka, scene ini tertutup total (z-index di bawahnya),
+            // jadi tidak perlu dihitung & dirender sama sekali -> hemat CPU/GPU signifikan.
+            if (window.galaxiloveActive) return;
+
             handCurrent.x += (handTarget.x - handCurrent.x) * 0.15;
             handCurrent.y += (handTarget.y - handCurrent.y) * 0.15;
             handCurrent.z += (handTarget.z - handCurrent.z) * 0.15;
@@ -706,6 +712,10 @@
             const posAttr = geometry.attributes.position.array;
             const colAttr = geometry.attributes.color.array;
 
+            // Mode 7 (kupu-kupu) butuh gradasi warna yang terus bergerak tiap frame.
+            // Mode lain warnanya konstan selama mode tidak berubah, jadi cukup dihitung sekali saja.
+            const needColorUpdate = (currentMode === 7) || (currentMode !== lastColorMode);
+
             for (let i = 0; i < NUM_PARTICLES; i++) {
                 currentPositions[i*3] += (targetPosArray[i*3] - currentPositions[i*3]) * 0.15;
                 currentPositions[i*3+1] += (targetPosArray[i*3+1] - currentPositions[i*3+1]) * 0.15;
@@ -714,6 +724,8 @@
                 posAttr[i*3] = currentPositions[i*3];
                 posAttr[i*3+1] = currentPositions[i*3+1];
                 posAttr[i*3+2] = currentPositions[i*3+2];
+
+                if (!needColorUpdate) continue;
 
                 if (currentMode === 3) { // Cyan
                     colAttr[i*3] = 0.0; colAttr[i*3+1] = 0.8; colAttr[i*3+2] = 1.0;
@@ -748,7 +760,10 @@
             }
 
             geometry.attributes.position.needsUpdate = true;
-            geometry.attributes.color.needsUpdate = true;
+            if (needColorUpdate) {
+                geometry.attributes.color.needsUpdate = true;
+                lastColorMode = currentMode;
+            }
 
             if ([2, 3, 4, 5, 7, 9].includes(currentMode)) {
                 particleSystem.position.set(handCurrent.x, handCurrent.y, handCurrent.z);
@@ -830,6 +845,7 @@
             const colors = new Float32Array(parameters.count * 3);
             const colorInside = new THREE.Color(parameters.insideColor);
             const colorOutside = new THREE.Color(parameters.outsideColor);
+            const mixed = new THREE.Color(); // dipakai ulang tiap iterasi, bukan bikin objek baru 80.000x
 
             for (let i = 0; i < parameters.count; i++) {
                 const i3 = i * 3;
@@ -844,7 +860,7 @@
                 positions[i3 + 1] = randomY;
                 positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * radius + randomZ;
 
-                const mixed = colorInside.clone().lerp(colorOutside, radius / parameters.radius);
+                mixed.copy(colorInside).lerp(colorOutside, radius / parameters.radius);
                 colors[i3] = mixed.r; colors[i3 + 1] = mixed.g; colors[i3 + 2] = mixed.b;
             }
 
@@ -1114,6 +1130,7 @@
         window.toggleGalaxiloveOverlay = function() {
             if (!initialized) init();
             active = !active;
+            window.galaxiloveActive = active;
             if (active) {
                 overlay.style.display = 'block';
                 if (!animationId) tick();
