@@ -954,9 +954,16 @@
             const urls = [
                 "foto1.jpg",
                 "foto2.jpg",
-                "foto3.jpg"
+                "foto3.jpg",
+                "foto4.jpg",
+                "foto5.jpg",
+                "foto6.jpg",
+                "foto7.jpg",
+                "foto8.jpg",
+                "foto9.jpg",
+                "foto10.jpg"
             ];
-            for (let i = 0; i < 30; i++) {
+            for (let i = 0; i < urls.length * 2; i++) {
                 const scale = 1 + Math.random();
                 const material = new THREE.SpriteMaterial({ transparent: true });
                 const sprite = new THREE.Sprite(material);
