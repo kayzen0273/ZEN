@@ -195,52 +195,92 @@
             from { opacity: 0; transform: scale(0.9) translateY(12px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
         }
-        #gl-modal-confirm {
+
+        /* ===== Pop-up "Milik Selamanya" (muncul dengan gestur jari kelingking, tutup HANYA lewat tombol) ===== */
+        #gl-modal-proposal {
             position: fixed;
             inset: 0;
             display: none;
             align-items: center;
             justify-content: center;
             background: rgba(0, 0, 0, 0.55);
-            backdrop-filter: blur(3px);
-            z-index: 31;
+            backdrop-filter: blur(4px);
+            z-index: 100;
         }
-        #gl-modal-confirm.visible { display: flex; }
-        #gl-modal-confirm .carta {
-            width: min(86vw, 380px);
-            background: linear-gradient(160deg, #fff8fb 0%, #ffe9f4 100%);
-            border: 2px solid #ffc7e4;
-            border-radius: 18px;
-            padding: 22px 20px 18px;
-            box-shadow: 0 12px 36px rgba(255, 20, 147, 0.4);
+        #gl-modal-proposal.visible { display: flex; }
+        #gl-modal-proposal .proposal-card {
+            width: min(88vw, 420px);
+            background: linear-gradient(160deg, #fff5f9 0%, #ffe0ef 100%);
+            border: 2px solid #ffb3d9;
+            border-radius: 20px;
+            padding: 26px 22px 20px;
+            box-shadow: 0 14px 40px rgba(255, 20, 147, 0.45);
             color: #8a235f;
             font-family: 'Georgia', serif;
             text-align: center;
-            animation: cartaAparece 0.28s ease-out;
+            position: relative;
+            animation: cartaAparece 0.3s ease-out;
         }
-        #gl-modal-confirm h3 { font-size: 1.1rem; margin-bottom: 14px; }
-        #gl-confirm-buttons {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            margin-top: 6px;
-        }
-        #gl-confirm-buttons button {
+        #gl-proposal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 77, 166, 0.85);
+            color: #fff;
             border: none;
             border-radius: 999px;
-            font-size: 0.95rem;
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
             font-weight: bold;
-            padding: 8px 18px;
             cursor: pointer;
+            line-height: 1;
         }
-        #gl-confirm-ya {
+        #gl-proposal-icon { font-size: 2.4rem; margin-bottom: 6px; }
+        #gl-proposal-message {
+            font-size: clamp(1.1rem, 3vw, 1.4rem);
+            line-height: 1.5;
+            margin: 8px 0 14px;
+            color: #b01867;
+            text-shadow: 0 0 10px rgba(255, 70, 150, 0.2);
+        }
+        #gl-proposal-timer {
+            font-size: 0.9rem;
+            color: #d43e8f;
+            margin-bottom: 16px;
+            font-family: Arial, sans-serif;
+            letter-spacing: 0.5px;
+        }
+        #gl-proposal-buttons {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .gl-proposal-btn {
+            border: none;
+            border-radius: 999px;
+            font-weight: bold;
+            font-size: 1rem;
+            padding: 10px 26px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+        }
+        #gl-btn-ya {
             background: #ff4da6;
             color: #fff;
         }
-        #gl-confirm-tidak {
-            background: transparent;
-            color: #b01867;
-            border: 2px solid #ffc7e4 !important;
+        #gl-btn-tidak {
+            background: #fff;
+            color: #ff4da6;
+            border: 2px solid #ff4da6;
+        }
+        #gl-proposal-response {
+            margin-top: 12px;
+            font-size: 0.95rem;
+            color: #8a235f;
+            min-height: 1.2em;
+            font-family: Arial, sans-serif;
         }
     </style>
 </head>
@@ -259,6 +299,21 @@
     <div id="canvas-container"></div>
     <div id="love-caption" class="love-caption"></div>
 
+    <!-- ===== Pop-up "Milik Selamanya" - muncul dengan gestur jari kelingking, tutup HANYA lewat tombol ✕ ===== -->
+    <div id="gl-modal-proposal">
+        <div class="proposal-card">
+            <button id="gl-proposal-close" title="Tutup">✕</button>
+            <div id="gl-proposal-icon">💍</div>
+            <p id="gl-proposal-message">Aku mau kamu jadi milik aku selamanya 💕</p>
+            <div id="gl-proposal-timer">Waktu untuk menjawab: 05:00</div>
+            <div id="gl-proposal-buttons">
+                <button class="gl-proposal-btn" id="gl-btn-ya">Ya 💖</button>
+                <button class="gl-proposal-btn" id="gl-btn-tidak">Tidak</button>
+            </div>
+            <div id="gl-proposal-response"></div>
+        </div>
+    </div>
+
     <!-- ===== Overlay Galaksi Cinta - dibuka/ditutup dengan gestur OK Sign 👌 ===== -->
     <div id="galaxilove-overlay">
         <canvas class="webgl" id="gl-canvas"></canvas>
@@ -269,16 +324,7 @@
             <div class="carta">
                 <h3>Untukmu daftar penting</h3>
                 <p id="gl-mensaje-romantico"></p>
-                <button id="gl-cerrar-carta">Lanjut</button>
-            </div>
-        </div>
-        <div id="gl-modal-confirm">
-            <div class="carta">
-                <h3>Aku ingin kamu jadi milik aku selamanya</h3>
-                <div id="gl-confirm-buttons">
-                    <button id="gl-confirm-ya">Ya, aku mau</button>
-                    <button id="gl-confirm-tidak">Tidak</button>
-                </div>
+                <button id="gl-cerrar-carta">Tutup</button>
             </div>
         </div>
         <audio id="gl-musica-fondo" loop>
@@ -314,6 +360,11 @@
         let lastOkSignActive = false;
         let lastOkToggleTime = 0;
         const OK_TOGGLE_COOLDOWN = 1500; // ms, biar tidak toggle berkali-kali per detik
+
+        // Gestur Jari Kelingking (hanya kelingking berdiri) dipakai untuk memunculkan pop-up "milik selamanya"
+        let lastPinkyActive = false;
+        let lastPinkyToggleTime = 0;
+        const PINKY_TOGGLE_COOLDOWN = 1500; // ms, biar tidak muncul berkali-kali per detik
 
         // ==========================================
         // SETUP THREE.JS (RENDERER 3D)
@@ -622,6 +673,18 @@
             }
             lastOkSignActive = false;
 
+            // 2b. Cek Mode Jari Kelingking 🤙 (Hanya kelingking berdiri, jari lain menekuk)
+            //     Dipakai untuk memunculkan pop-up "Aku mau kamu jadi milik aku selamanya"
+            if (!fingersUp[0] && !fingersUp[1] && !fingersUp[2] && fingersUp[3]) {
+                if (!lastPinkyActive && (Date.now() - lastPinkyToggleTime > PINKY_TOGGLE_COOLDOWN)) {
+                    if (typeof showProposalPopup === 'function') showProposalPopup();
+                    lastPinkyToggleTime = Date.now();
+                }
+                lastPinkyActive = true;
+                return 1;
+            }
+            lastPinkyActive = false;
+
             // 3. Cek Mode ZEN & CINTA 🤟 (Sign ILY: Jempol + Telunjuk + Kelingking berdiri,
             //    Tengah & Manis menekuk, dan jempol terentang keluar dari telapak)
             if (fingersUp[0] && !fingersUp[1] && !fingersUp[2] && fingersUp[3]) {
@@ -679,6 +742,80 @@
                 captionEl.classList.remove('show');
             }
         }
+        // ==========================================
+        // POP-UP "MILIK SELAMANYA" (Gestur Jari Kelingking)
+        // ==========================================
+        const proposalModal = document.getElementById('gl-modal-proposal');
+        const proposalCloseBtn = document.getElementById('gl-proposal-close');
+        const proposalMessageEl = document.getElementById('gl-proposal-message');
+        const proposalTimerEl = document.getElementById('gl-proposal-timer');
+        const proposalResponseEl = document.getElementById('gl-proposal-response');
+        const btnYa = document.getElementById('gl-btn-ya');
+        const btnTidak = document.getElementById('gl-btn-tidak');
+
+        let proposalTimerInterval = null;
+        let proposalTimeLeft = 300; // 5 menit dalam detik
+        let proposalAnswered = false;
+
+        function formatProposalTime(totalSeconds) {
+            const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const s = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
+            return m + ':' + s;
+        }
+
+        function stopProposalTimerOnly() {
+            if (proposalTimerInterval) {
+                clearInterval(proposalTimerInterval);
+                proposalTimerInterval = null;
+            }
+        }
+
+        function startProposalTimer() {
+            stopProposalTimerOnly();
+            proposalTimeLeft = 300;
+            proposalTimerEl.textContent = 'Waktu untuk menjawab: ' + formatProposalTime(proposalTimeLeft);
+            proposalTimerInterval = setInterval(() => {
+                proposalTimeLeft--;
+                if (proposalTimeLeft <= 0) {
+                    proposalTimeLeft = 0;
+                    proposalTimerEl.textContent = 'Waktu habis ⏰';
+                    stopProposalTimerOnly();
+                    if (!proposalAnswered) {
+                        proposalResponseEl.textContent = 'Waktunya habis... tapi aku tetap menunggu jawabanmu 💗';
+                    }
+                } else {
+                    proposalTimerEl.textContent = 'Waktu untuk menjawab: ' + formatProposalTime(proposalTimeLeft);
+                }
+            }, 1000);
+        }
+
+        // Fungsi global dipanggil oleh calculateGestureMode saat gestur jari kelingking terdeteksi
+        window.showProposalPopup = function() {
+            if (proposalModal.classList.contains('visible')) return; // sudah terbuka, jangan reset timer
+            proposalAnswered = false;
+            proposalMessageEl.textContent = 'Aku mau kamu jadi milik aku selamanya 💕';
+            proposalResponseEl.textContent = '';
+            proposalModal.classList.add('visible');
+            startProposalTimer();
+        };
+
+        function closeProposalPopup() {
+            proposalModal.classList.remove('visible');
+            stopProposalTimerOnly();
+        }
+
+        // Modal ini HANYA bisa ditutup lewat tombol ✕ (bukan gestur, bukan klik backdrop)
+        proposalCloseBtn.addEventListener('click', closeProposalPopup);
+
+        btnYa.addEventListener('click', () => {
+            proposalAnswered = true;
+            proposalResponseEl.textContent = 'Yeay! Makasih udah bilang YA 🥰💍 Aku sayang kamu selamanya.';
+        });
+
+        btnTidak.addEventListener('click', () => {
+            proposalResponseEl.textContent = 'Yakin? Coba dipikir-pikir lagi ya 🥺 Aku masih nunggu kok.';
+        });
+
         const hands = new Hands({locateFile: (file) => {
             return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
         }});
@@ -872,9 +1009,6 @@
         const modalCarta = document.getElementById('gl-modal-carta');
         const mensajeRomantico = document.getElementById('gl-mensaje-romantico');
         const cerrarCarta = document.getElementById('gl-cerrar-carta');
-        const modalConfirm = document.getElementById('gl-modal-confirm');
-        const confirmYa = document.getElementById('gl-confirm-ya');
-        const confirmTidak = document.getElementById('gl-confirm-tidak');
         const closeBtn = document.getElementById('gl-close-btn');
         const musica = document.getElementById('gl-musica-fondo');
 
@@ -1111,22 +1245,9 @@
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
 
-            cerrarCarta.addEventListener('click', () => {
-                modalCarta.classList.remove('visible');
-                modalConfirm.classList.add('visible');
-            });
+            cerrarCarta.addEventListener('click', () => modalCarta.classList.remove('visible'));
             modalCarta.addEventListener('click', (event) => {
                 if (event.target === modalCarta) modalCarta.classList.remove('visible');
-            });
-
-            confirmYa.addEventListener('click', () => {
-                window.location.href = 'joget.mp4';
-            });
-            confirmTidak.addEventListener('click', () => {
-                modalConfirm.classList.remove('visible');
-            });
-            modalConfirm.addEventListener('click', (event) => {
-                if (event.target === modalConfirm) modalConfirm.classList.remove('visible');
             });
 
             canvasEl.addEventListener('pointerdown', (event) => {
