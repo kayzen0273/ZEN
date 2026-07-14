@@ -284,6 +284,15 @@
             color: #b01867;
             border: 2px solid #ffc7e4;
         }
+        #gl-proposal-timer {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #d43e8f;
+            font-family: Arial, sans-serif;
+            letter-spacing: 0.5px;
+            min-height: 1.2em;
+        }
         #gl-proposal-response {
             margin-top: 12px;
             font-size: 0.92rem;
@@ -319,6 +328,7 @@
                 <button class="gl-proposal-btn" id="gl-btn-tidak">Tidak</button>
                 <button class="gl-proposal-btn" id="gl-btn-snooze">Kasih waktu 5 menit ⏰</button>
             </div>
+            <div id="gl-proposal-timer"></div>
             <div id="gl-proposal-response"></div>
         </div>
     </div>
@@ -793,23 +803,31 @@
         const proposalModal = document.getElementById('gl-modal-proposal');
         const proposalCloseBtn = document.getElementById('gl-proposal-close');
         const proposalResponseEl = document.getElementById('gl-proposal-response');
+        const proposalTimerEl = document.getElementById('gl-proposal-timer');
         const congratsModal = document.getElementById('gl-modal-congrats');
         const btnYa = document.getElementById('gl-btn-ya');
         const btnTidak = document.getElementById('gl-btn-tidak');
         const btnSnooze = document.getElementById('gl-btn-snooze');
 
-        let snoozeTimeout = null;
+        let snoozeInterval = null;
+        let snoozeSecondsLeft = 0;
         let congratsTimeout = null;
 
+        function formatSnoozeTime(totalSeconds) {
+            const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const s = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
+            return m + ':' + s;
+        }
+
         function clearSnooze() {
-            if (snoozeTimeout) {
-                clearTimeout(snoozeTimeout);
-                snoozeTimeout = null;
+            if (snoozeInterval) {
+                clearInterval(snoozeInterval);
+                snoozeInterval = null;
             }
+            proposalTimerEl.textContent = '';
         }
 
         // Fungsi global dipanggil oleh calculateGestureMode saat gestur jari kelingking terdeteksi
-        // (juga dipanggil otomatis lagi setelah 5 menit jika tombol "Kasih waktu 5 menit" dipilih)
         window.showProposalPopup = function() {
             if (proposalModal.classList.contains('visible')) return; // sudah terbuka
             clearSnooze();
@@ -818,7 +836,7 @@
             proposalModal.classList.add('visible');
         };
 
-        // Tutup lewat tombol ✕: batalkan sepenuhnya (tidak ada pengingat), kamera langsung aktif lagi.
+        // Tutup lewat tombol ✕: batalkan sepenuhnya (termasuk timer), kamera langsung aktif lagi.
         // Tidak bisa ditutup dengan gestur.
         proposalCloseBtn.addEventListener('click', () => {
             proposalModal.classList.remove('visible');
@@ -846,15 +864,24 @@
             proposalResponseEl.textContent = 'Yakin? Coba dipikir-pikir lagi ya 🥺 Aku masih nunggu kok.';
         });
 
-        // Klik "Kasih waktu 5 menit": tutup pop-up & kamera aktif lagi sekarang,
-        // tapi pop-up akan muncul kembali secara otomatis 5 menit dari sekarang.
+        // Klik "Kasih waktu 5 menit": pop-up TETAP TERBUKA (tidak tertutup) dan kamera tetap nonaktif,
+        // hanya menampilkan hitung mundur 5 menit di dalam pop-up sebagai waktu tambahan untuk menjawab.
         btnSnooze.addEventListener('click', () => {
-            proposalModal.classList.remove('visible');
-            resumeCamera();
             clearSnooze();
-            snoozeTimeout = setTimeout(() => {
-                showProposalPopup();
-            }, 5 * 60 * 1000);
+            proposalResponseEl.textContent = 'Oke, aku kasih waktu 5 menit ya 💗';
+            snoozeSecondsLeft = 5 * 60;
+            proposalTimerEl.textContent = 'Waktu tambahan: ' + formatSnoozeTime(snoozeSecondsLeft);
+            snoozeInterval = setInterval(() => {
+                snoozeSecondsLeft--;
+                if (snoozeSecondsLeft <= 0) {
+                    proposalTimerEl.textContent = 'Waktu habis ⏰';
+                    clearInterval(snoozeInterval);
+                    snoozeInterval = null;
+                    proposalResponseEl.textContent = 'Waktunya habis... tapi aku tetap menunggu jawabanmu 💗';
+                } else {
+                    proposalTimerEl.textContent = 'Waktu tambahan: ' + formatSnoozeTime(snoozeSecondsLeft);
+                }
+            }, 1000);
         });
 
         const hands = new Hands({locateFile: (file) => {
