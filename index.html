@@ -244,13 +244,17 @@
             color: #b01867;
             text-shadow: 0 0 10px rgba(255, 70, 150, 0.2);
         }
-        #gl-proposal-timer {
-            font-size: 0.9rem;
-            color: #d43e8f;
-            margin-bottom: 16px;
-            font-family: Arial, sans-serif;
-            letter-spacing: 0.5px;
+        #gl-modal-congrats {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(4px);
+            z-index: 100;
         }
+        #gl-modal-congrats.visible { display: flex; }
         #gl-proposal-buttons {
             display: flex;
             gap: 14px;
@@ -261,8 +265,8 @@
             border: none;
             border-radius: 999px;
             font-weight: bold;
-            font-size: 1rem;
-            padding: 10px 26px;
+            font-size: 0.92rem;
+            padding: 9px 18px;
             cursor: pointer;
             font-family: Arial, sans-serif;
         }
@@ -275,9 +279,14 @@
             color: #ff4da6;
             border: 2px solid #ff4da6;
         }
+        #gl-btn-snooze {
+            background: #ffe0ef;
+            color: #b01867;
+            border: 2px solid #ffc7e4;
+        }
         #gl-proposal-response {
             margin-top: 12px;
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             color: #8a235f;
             min-height: 1.2em;
             font-family: Arial, sans-serif;
@@ -299,20 +308,30 @@
     <div id="canvas-container"></div>
     <div id="love-caption" class="love-caption"></div>
 
-    <!-- ===== Pop-up "Milik Selamanya" - muncul dengan gestur jari kelingking, tutup HANYA lewat tombol ✕ ===== -->
+    <!-- ===== Pop-up "Milik Selamanya" - muncul dengan gestur jari kelingking, tutup HANYA lewat tombol ===== -->
     <div id="gl-modal-proposal">
         <div class="proposal-card">
             <button id="gl-proposal-close" title="Tutup">✕</button>
             <div id="gl-proposal-icon">💍</div>
             <p id="gl-proposal-message">Aku mau kamu jadi milik aku selamanya 💕</p>
-            <div id="gl-proposal-timer">Waktu untuk menjawab: 05:00</div>
             <div id="gl-proposal-buttons">
                 <button class="gl-proposal-btn" id="gl-btn-ya">Ya 💖</button>
                 <button class="gl-proposal-btn" id="gl-btn-tidak">Tidak</button>
+                <button class="gl-proposal-btn" id="gl-btn-snooze">Kasih waktu 5 menit ⏰</button>
             </div>
             <div id="gl-proposal-response"></div>
         </div>
     </div>
+
+    <!-- ===== Pop-up Congratulation - muncul otomatis setelah klik "Ya", lalu hilang sendiri ===== -->
+    <div id="gl-modal-congrats">
+        <div class="proposal-card">
+            <div id="gl-congrats-icon">🎉💍✨</div>
+            <p id="gl-congrats-message">Yeay!! Makasih udah bilang YA 🥰<br>Selamanya jadi milikku ya 💕</p>
+        </div>
+    </div>
+
+
 
     <!-- ===== Overlay Galaksi Cinta - dibuka/ditutup dengan gestur OK Sign 👌 ===== -->
     <div id="galaxilove-overlay">
@@ -743,77 +762,99 @@
             }
         }
         // ==========================================
+        // KONTROL KAMERA (nonaktif otomatis saat pop-up terbuka)
+        // ==========================================
+        let handTrackingPaused = false;
+
+        async function pauseCamera() {
+            handTrackingPaused = true;
+            if (videoElement.srcObject) {
+                videoElement.srcObject.getTracks().forEach(track => track.stop());
+                videoElement.srcObject = null;
+            }
+            const modeTextEl = document.getElementById('mode-text');
+            if (modeTextEl) modeTextEl.innerText = 'MODE: KAMERA NONAKTIF (Pop-up terbuka)';
+        }
+
+        async function resumeCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 360 } });
+                videoElement.srcObject = stream;
+                await videoElement.play();
+            } catch (e) {
+                console.error('Gagal mengaktifkan kembali kamera:', e);
+            }
+            handTrackingPaused = false;
+        }
+
+        // ==========================================
         // POP-UP "MILIK SELAMANYA" (Gestur Jari Kelingking)
         // ==========================================
         const proposalModal = document.getElementById('gl-modal-proposal');
         const proposalCloseBtn = document.getElementById('gl-proposal-close');
-        const proposalMessageEl = document.getElementById('gl-proposal-message');
-        const proposalTimerEl = document.getElementById('gl-proposal-timer');
         const proposalResponseEl = document.getElementById('gl-proposal-response');
+        const congratsModal = document.getElementById('gl-modal-congrats');
         const btnYa = document.getElementById('gl-btn-ya');
         const btnTidak = document.getElementById('gl-btn-tidak');
+        const btnSnooze = document.getElementById('gl-btn-snooze');
 
-        let proposalTimerInterval = null;
-        let proposalTimeLeft = 300; // 5 menit dalam detik
-        let proposalAnswered = false;
+        let snoozeTimeout = null;
+        let congratsTimeout = null;
 
-        function formatProposalTime(totalSeconds) {
-            const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-            const s = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
-            return m + ':' + s;
-        }
-
-        function stopProposalTimerOnly() {
-            if (proposalTimerInterval) {
-                clearInterval(proposalTimerInterval);
-                proposalTimerInterval = null;
+        function clearSnooze() {
+            if (snoozeTimeout) {
+                clearTimeout(snoozeTimeout);
+                snoozeTimeout = null;
             }
         }
 
-        function startProposalTimer() {
-            stopProposalTimerOnly();
-            proposalTimeLeft = 300;
-            proposalTimerEl.textContent = 'Waktu untuk menjawab: ' + formatProposalTime(proposalTimeLeft);
-            proposalTimerInterval = setInterval(() => {
-                proposalTimeLeft--;
-                if (proposalTimeLeft <= 0) {
-                    proposalTimeLeft = 0;
-                    proposalTimerEl.textContent = 'Waktu habis ⏰';
-                    stopProposalTimerOnly();
-                    if (!proposalAnswered) {
-                        proposalResponseEl.textContent = 'Waktunya habis... tapi aku tetap menunggu jawabanmu 💗';
-                    }
-                } else {
-                    proposalTimerEl.textContent = 'Waktu untuk menjawab: ' + formatProposalTime(proposalTimeLeft);
-                }
-            }, 1000);
-        }
-
         // Fungsi global dipanggil oleh calculateGestureMode saat gestur jari kelingking terdeteksi
+        // (juga dipanggil otomatis lagi setelah 5 menit jika tombol "Kasih waktu 5 menit" dipilih)
         window.showProposalPopup = function() {
-            if (proposalModal.classList.contains('visible')) return; // sudah terbuka, jangan reset timer
-            proposalAnswered = false;
-            proposalMessageEl.textContent = 'Aku mau kamu jadi milik aku selamanya 💕';
+            if (proposalModal.classList.contains('visible')) return; // sudah terbuka
+            clearSnooze();
             proposalResponseEl.textContent = '';
+            pauseCamera();
             proposalModal.classList.add('visible');
-            startProposalTimer();
         };
 
-        function closeProposalPopup() {
+        // Tutup lewat tombol ✕: batalkan sepenuhnya (tidak ada pengingat), kamera langsung aktif lagi.
+        // Tidak bisa ditutup dengan gestur.
+        proposalCloseBtn.addEventListener('click', () => {
             proposalModal.classList.remove('visible');
-            stopProposalTimerOnly();
-        }
-
-        // Modal ini HANYA bisa ditutup lewat tombol ✕ (bukan gestur, bukan klik backdrop)
-        proposalCloseBtn.addEventListener('click', closeProposalPopup);
-
-        btnYa.addEventListener('click', () => {
-            proposalAnswered = true;
-            proposalResponseEl.textContent = 'Yeay! Makasih udah bilang YA 🥰💍 Aku sayang kamu selamanya.';
+            proposalResponseEl.textContent = '';
+            clearSnooze();
+            resumeCamera();
         });
 
+        // Klik "Ya": modal pertanyaan langsung tertutup, lalu muncul modal congratulation.
+        // Setelah modal congratulation hilang sendiri, kembali ke tampilan galaksi & kamera nyala lagi.
+        btnYa.addEventListener('click', () => {
+            proposalModal.classList.remove('visible');
+            clearSnooze();
+            congratsModal.classList.add('visible');
+            if (congratsTimeout) clearTimeout(congratsTimeout);
+            congratsTimeout = setTimeout(() => {
+                congratsModal.classList.remove('visible');
+                resumeCamera();
+            }, 3500);
+        });
+
+        // Klik "Tidak": pop-up TETAP TERBUKA, hanya menampilkan ajakan untuk mikir lagi.
+        // Kamera tetap nonaktif selama pop-up masih terbuka.
         btnTidak.addEventListener('click', () => {
             proposalResponseEl.textContent = 'Yakin? Coba dipikir-pikir lagi ya 🥺 Aku masih nunggu kok.';
+        });
+
+        // Klik "Kasih waktu 5 menit": tutup pop-up & kamera aktif lagi sekarang,
+        // tapi pop-up akan muncul kembali secara otomatis 5 menit dari sekarang.
+        btnSnooze.addEventListener('click', () => {
+            proposalModal.classList.remove('visible');
+            resumeCamera();
+            clearSnooze();
+            snoozeTimeout = setTimeout(() => {
+                showProposalPopup();
+            }, 5 * 60 * 1000);
         });
 
         const hands = new Hands({locateFile: (file) => {
@@ -855,6 +896,7 @@
 
         const cameraFeed = new Camera(videoElement, {
             onFrame: async () => {
+                if (handTrackingPaused) return;
                 await hands.send({image: videoElement});
             },
             width: 480,
