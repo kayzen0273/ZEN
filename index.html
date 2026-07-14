@@ -2,21 +2,16 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NebulaHeart 3D - Web Gesture Controller (FINAL FIX)</title>
     <style>
-        html, body {
+        body {
             margin: 0;
             padding: 0;
             overflow: hidden;
             background-color: black;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: white;
-            height: 100%;
-            overscroll-behavior: none;
-            touch-action: none;
-            -webkit-user-select: none;
-            user-select: none;
         }
         #canvas-container {
             position: absolute;
@@ -24,9 +19,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            height: 100dvh;
             z-index: 1;
-            touch-action: none;
         }
         #ui-layer {
             position: absolute;
@@ -37,11 +30,10 @@
         }
         #camera-feed {
             position: absolute;
-            bottom: calc(20px + env(safe-area-inset-bottom));
-            right: calc(20px + env(safe-area-inset-right));
-            width: min(240px, 32vw);
-            aspect-ratio: 4 / 3;
-            height: auto;
+            bottom: 20px;
+            right: 20px;
+            width: 240px;
+            height: 180px;
             z-index: 2;
             border: 2px solid #00ff00;
             border-radius: 8px;
@@ -49,16 +41,11 @@
             background-color: #222;
         }
         .status-text {
-            font-size: clamp(13px, 3.5vw, 24px);
+            font-size: 24px;
             font-weight: bold;
             color: #00ff00;
             text-shadow: 2px 2px 4px #000;
             margin-bottom: 5px;
-        }
-        #ui-layer {
-            top: calc(20px + env(safe-area-inset-top));
-            left: calc(20px + env(safe-area-inset-left));
-            max-width: 60vw;
         }
         .loading {
             position: absolute;
@@ -66,14 +53,8 @@
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 10;
-            font-size: clamp(14px, 4vw, 20px);
+            font-size: 20px;
             text-align: center;
-            width: 90vw;
-            padding: 0 12px;
-            box-sizing: border-box;
-        }
-        .loading h2 {
-            font-size: clamp(16px, 5vw, 24px);
         }
         .falling-heart {
             position: absolute;
@@ -93,11 +74,11 @@
         }
         .love-caption {
             position: absolute;
-            bottom: calc(40px + env(safe-area-inset-bottom));
+            bottom: 40px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 3;
-            font-size: clamp(18px, 5.5vw, 32px);
+            font-size: 32px;
             font-weight: bold;
             color: #ffb3d9;
             text-shadow: 2px 2px 6px #000;
@@ -126,51 +107,64 @@
             z-index: 50;
             background: black;
         }
-        #galaxilove-overlay .webgl { position: fixed; top: 0; left: 0; outline: none; touch-action: none; }
+        #galaxilove-overlay .webgl { position: fixed; top: 0; left: 0; outline: none; }
         #gl-titulo-corazon {
             position: fixed;
-            top: calc(18px + env(safe-area-inset-top));
+            top: 18px;
             left: 50%;
             transform: translateX(-50%);
             color: #ffd7ef;
             font-family: Arial, sans-serif;
-            font-size: clamp(1.1rem, 2.8vw, 2rem);
+            font-size: clamp(1.2rem, 2.8vw, 2rem);
             font-weight: bold;
             text-shadow: 0 0 10px #ff3ea5, 0 0 24px #ff3ea5;
             z-index: 20;
             pointer-events: none;
-            text-align: center;
-            width: 82vw;
         }
         #gl-hint {
             position: fixed;
-            bottom: calc(18px + env(safe-area-inset-bottom));
+            bottom: 18px;
             left: 50%;
             transform: translateX(-50%);
             color: #ffd7ef;
             font-family: Arial, sans-serif;
-            font-size: clamp(12px, 3vw, 15px);
+            font-size: 15px;
             text-shadow: 0 0 8px #ff3ea5;
             z-index: 20;
             pointer-events: none;
             text-align: center;
-            width: 90vw;
         }
-        #gl-close-btn {
+        #gl-page-close-btn {
             position: fixed;
-            top: calc(16px + env(safe-area-inset-top));
-            right: calc(16px + env(safe-area-inset-right));
+            top: 16px;
+            left: 16px;
             z-index: 25;
             background: rgba(255, 77, 166, 0.85);
             color: #fff;
             border: none;
             border-radius: 999px;
-            width: 42px;
-            height: 42px;
+            width: 38px;
+            height: 38px;
             font-size: 18px;
             font-weight: bold;
             cursor: pointer;
-            touch-action: manipulation;
+            box-shadow: 0 4px 14px rgba(255, 20, 147, 0.4);
+        }
+        #gl-close-btn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 25;
+            background: rgba(255, 77, 166, 0.85);
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            padding: 9px 20px;
+            font-size: 15px;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(255, 20, 147, 0.4);
         }
         #gl-modal-carta {
             position: fixed;
@@ -211,10 +205,8 @@
             color: #fff;
             font-size: 0.95rem;
             font-weight: bold;
-            padding: 10px 18px;
-            min-height: 40px;
+            padding: 8px 16px;
             cursor: pointer;
-            touch-action: manipulation;
         }
         @keyframes cartaAparece {
             from { opacity: 0; transform: scale(0.9) translateY(12px); }
@@ -254,13 +246,12 @@
             color: #fff;
             border: none;
             border-radius: 999px;
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             line-height: 1;
-            touch-action: manipulation;
         }
         #gl-proposal-icon { font-size: 2.4rem; margin-bottom: 6px; }
         #gl-proposal-message {
@@ -292,11 +283,9 @@
             border-radius: 999px;
             font-weight: bold;
             font-size: 0.92rem;
-            padding: 11px 18px;
-            min-height: 40px;
+            padding: 9px 18px;
             cursor: pointer;
             font-family: Arial, sans-serif;
-            touch-action: manipulation;
         }
         #gl-btn-ya {
             background: #ff4da6;
@@ -327,6 +316,113 @@
             color: #8a235f;
             min-height: 1.2em;
             font-family: Arial, sans-serif;
+        }
+
+        /* ===== Modal "Upgrade Panggilan Spesial" - muncul saat tombol Lanjut ditekan ===== */
+        #gl-modal-nickname {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+        }
+        #gl-modal-nickname.visible { display: flex; }
+        #gl-modal-nickname .nickname-card {
+            width: min(88vw, 420px);
+            background: linear-gradient(160deg, #fff5f9 0%, #ffe0ef 100%);
+            border: 2px solid #ffb3d9;
+            border-radius: 20px;
+            padding: 26px 22px 20px;
+            box-shadow: 0 14px 40px rgba(255, 20, 147, 0.45);
+            color: #8a235f;
+            font-family: 'Georgia', serif;
+            text-align: center;
+            position: relative;
+            animation: cartaAparece 0.3s ease-out;
+        }
+        #gl-nickname-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 77, 166, 0.85);
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        #gl-modal-nickname h3 {
+            font-size: 1.2rem;
+            margin: 4px 0 16px;
+            color: #b01867;
+        }
+        .gl-nickname-field {
+            text-align: left;
+            margin-bottom: 14px;
+        }
+        .gl-nickname-field label {
+            display: block;
+            font-family: Arial, sans-serif;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #b01867;
+            margin-bottom: 5px;
+            letter-spacing: 0.3px;
+        }
+        .gl-nickname-field input,
+        .gl-nickname-field textarea {
+            width: 100%;
+            box-sizing: border-box;
+            border: 2px solid #ffc7e4;
+            border-radius: 10px;
+            padding: 9px 12px;
+            font-family: Arial, sans-serif;
+            font-size: 0.95rem;
+            color: #8a235f;
+            background: #fff;
+            resize: vertical;
+        }
+        .gl-nickname-field input:focus,
+        .gl-nickname-field textarea:focus {
+            outline: none;
+            border-color: #ff4da6;
+        }
+        #gl-btn-simpan-nickname {
+            margin-top: 6px;
+            border: none;
+            border-radius: 999px;
+            background: #ff4da6;
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: bold;
+            padding: 10px 26px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+        }
+        #gl-btn-simpan-nickname:disabled {
+            opacity: 0.7;
+            cursor: default;
+        }
+        #gl-nickname-congrats {
+            display: none;
+        }
+        #gl-nickname-congrats.visible { display: block; }
+        #gl-nickname-congrats-icon {
+            font-size: 2.6rem;
+            margin-bottom: 8px;
+            animation: cartaAparece 0.4s ease-out;
+        }
+        #gl-nickname-congrats-message {
+            font-size: clamp(1.05rem, 2.8vw, 1.3rem);
+            line-height: 1.55;
+            color: #b01867;
         }
     </style>
 </head>
@@ -375,8 +471,9 @@
     <div id="galaxilove-overlay">
         <canvas class="webgl" id="gl-canvas"></canvas>
         <div id="gl-titulo-corazon">Tekan hatinya</div>
-        <div id="gl-hint">Buat gestur 👌 lagi untuk kembali</div>
-        <button id="gl-close-btn" title="Tutup">✕</button>
+        <div id="gl-hint">Sentuh hatinya untuk pesan cinta &bull; tekan "Lanjut" untuk isi data &bull; ✕ untuk keluar</div>
+        <button id="gl-page-close-btn" title="Tutup & nyalakan kamera">✕</button>
+        <button id="gl-close-btn" title="Lanjut">Lanjut ➜</button>
         <div id="gl-modal-carta">
             <div class="carta">
                 <h3>Untukmu daftar penting</h3>
@@ -384,6 +481,32 @@
                 <button id="gl-cerrar-carta">Tutup</button>
             </div>
         </div>
+
+        <!-- ===== Modal "Upgrade Panggilan Spesial" - muncul saat tombol Lanjut ditekan ===== -->
+        <div id="gl-modal-nickname">
+            <div class="nickname-card">
+                <button id="gl-nickname-close" title="Tutup">✕</button>
+
+                <div id="gl-nickname-form">
+                    <h3>Upgrade Panggilan Spesial 💕</h3>
+                    <div class="gl-nickname-field">
+                        <label for="gl-input-mbg">MBG</label>
+                        <input type="text" id="gl-input-mbg" placeholder="Isi panggilan spesialmu...">
+                    </div>
+                    <div class="gl-nickname-field">
+                        <label for="gl-input-daftar">Daftar Penting</label>
+                        <textarea id="gl-input-daftar" rows="3" placeholder="Isi daftar penting..."></textarea>
+                    </div>
+                    <button id="gl-btn-simpan-nickname">Simpan</button>
+                </div>
+
+                <div id="gl-nickname-congrats">
+                    <div id="gl-nickname-congrats-icon">🎉💕✨</div>
+                    <p id="gl-nickname-congrats-message">Yeay!! Data spesialmu berhasil disimpan 🥰<br>Makasih udah isi ini semua buat kita 💖</p>
+                </div>
+            </div>
+        </div>
+
         <audio id="gl-musica-fondo" loop>
             <source src="cintanya akuu.mp3" type="audio/mpeg">
         </audio>
@@ -1078,13 +1201,11 @@
 
         animate();
 
-        function handleViewportResize() {
+        window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-        window.addEventListener('resize', handleViewportResize);
-        window.addEventListener('orientationchange', () => setTimeout(handleViewportResize, 300));
+        });
     </script>
 
     <!-- ============================================================
@@ -1109,7 +1230,59 @@
         const mensajeRomantico = document.getElementById('gl-mensaje-romantico');
         const cerrarCarta = document.getElementById('gl-cerrar-carta');
         const closeBtn = document.getElementById('gl-close-btn');
+        const pageCloseBtn = document.getElementById('gl-page-close-btn');
         const musica = document.getElementById('gl-musica-fondo');
+
+        // ===== Modal "Upgrade Panggilan Spesial" =====
+        const nicknameModal = document.getElementById('gl-modal-nickname');
+        const nicknameCloseBtn = document.getElementById('gl-nickname-close');
+        const nicknameForm = document.getElementById('gl-nickname-form');
+        const nicknameCongrats = document.getElementById('gl-nickname-congrats');
+        const inputMbg = document.getElementById('gl-input-mbg');
+        const inputDaftar = document.getElementById('gl-input-daftar');
+        const btnSimpanNickname = document.getElementById('gl-btn-simpan-nickname');
+        let nicknameCongratsTimeout = null;
+
+        function openNicknameModal() {
+            // Isi ulang input dengan data yang sudah tersimpan sebelumnya (kalau ada)
+            inputMbg.value = localStorage.getItem('galaxilove_mbg') || '';
+            inputDaftar.value = localStorage.getItem('galaxilove_daftarPenting') || '';
+            nicknameForm.style.display = 'block';
+            nicknameCongrats.classList.remove('visible');
+            btnSimpanNickname.textContent = 'Simpan';
+            btnSimpanNickname.disabled = false;
+            nicknameModal.classList.add('visible');
+        }
+
+        function closeNicknameModal() {
+            nicknameModal.classList.remove('visible');
+            if (nicknameCongratsTimeout) {
+                clearTimeout(nicknameCongratsTimeout);
+                nicknameCongratsTimeout = null;
+            }
+        }
+
+        nicknameCloseBtn.addEventListener('click', closeNicknameModal);
+
+        btnSimpanNickname.addEventListener('click', () => {
+            localStorage.setItem('galaxilove_mbg', inputMbg.value);
+            localStorage.setItem('galaxilove_daftarPenting', inputDaftar.value);
+
+            btnSimpanNickname.textContent = 'Tersimpan ✓';
+            btnSimpanNickname.disabled = true;
+
+            setTimeout(() => {
+                nicknameForm.style.display = 'none';
+                nicknameCongrats.classList.add('visible');
+
+                // Modal ditutup sendiri setelah beberapa detik, TAPI overlay & kamera
+                // TIDAK ikut ditutup di sini. Kamera baru menyala lagi kalau tombol
+                // ✕ di halaman (gl-page-close-btn) yang diklik, bukan otomatis.
+                nicknameCongratsTimeout = setTimeout(() => {
+                    closeNicknameModal();
+                }, 3500);
+            }, 500);
+        });
 
         const ORBIT_SYNC_SPEED = 0.003;
 
@@ -1359,19 +1532,23 @@
             });
 
             closeBtn.addEventListener('click', () => {
-                if (active) toggleGalaxiloveOverlay();
+                if (active) openNicknameModal();
             });
 
-            function handleGlResize() {
+            // Tombol ✕ di HALAMAN (bukan di modal) - satu-satunya cara menutup
+            // overlay Galaksi Cinta sekaligus menyalakan kamera lagi.
+            pageCloseBtn.addEventListener('click', () => {
+                if (active) window.toggleGalaxiloveOverlay();
+            });
+
+            window.addEventListener('resize', () => {
                 if (!glRenderer) return;
                 sizes.width = window.innerWidth;
                 sizes.height = window.innerHeight;
                 glCamera.aspect = sizes.width / sizes.height;
                 glCamera.updateProjectionMatrix();
                 glRenderer.setSize(sizes.width, sizes.height);
-            }
-            window.addEventListener('resize', handleGlResize);
-            window.addEventListener('orientationchange', () => setTimeout(handleGlResize, 300));
+            });
 
             initialized = true;
         }
@@ -1429,9 +1606,12 @@
                 overlay.style.display = 'block';
                 if (!animationId) tick();
                 musica.play().catch(() => { /* browser mungkin memblokir autoplay tanpa klik langsung, tidak apa-apa */ });
+                if (typeof pauseCamera === 'function') pauseCamera(); // matikan kamera saat overlay Galaksi Cinta terbuka
             } else {
                 overlay.style.display = 'none';
                 musica.pause();
+                closeNicknameModal();
+                if (typeof resumeCamera === 'function') resumeCamera(); // nyalakan lagi kamera saat kembali ke mode gestur utama
             }
         };
     })();
