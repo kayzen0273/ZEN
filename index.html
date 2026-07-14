@@ -272,6 +272,16 @@
             z-index: 100;
         }
         #gl-modal-congrats.visible { display: flex; }
+        #gl-congrats-video {
+            width: 100%;
+            max-height: 55vh;
+            margin-top: 14px;
+            border-radius: 14px;
+            border: 2px solid #ffc7e4;
+            box-shadow: 0 8px 24px rgba(255, 20, 147, 0.35);
+            display: none;
+        }
+        #gl-congrats-video.show { display: block; }
         #gl-proposal-buttons {
             display: flex;
             gap: 14px;
@@ -490,6 +500,7 @@
         <div class="proposal-card">
             <div id="gl-congrats-icon">🎉💍✨</div>
             <p id="gl-congrats-message">Yeay!! Makasih udah bilang YA 🥰<br>Selamanya jadi milikku ya 💕</p>
+            <video id="gl-congrats-video" src="joget.mp4" playsinline></video>
         </div>
     </div>
 
@@ -519,23 +530,23 @@
 
                     <div id="gl-nickname-display">
                         <div class="gl-nickname-display-row">
-                            <span class="gl-nickname-display-label" id="gl-mbg-tap-target">MBG (Zen)</span>
+                            <span class="gl-nickname-display-label" id="gl-mbg-tap-target">MBG</span>
                             <span class="gl-nickname-display-value" id="gl-display-mbg"></span>
                         </div>
                         <div class="gl-nickname-display-row">
-                            <span class="gl-nickname-display-label">Daftar Penting (Sely)</span>
+                            <span class="gl-nickname-display-label">Daftar Penting</span>
                             <span class="gl-nickname-display-value" id="gl-display-daftar"></span>
                         </div>
                     </div>
 
                     <div id="gl-nickname-fields">
                         <div class="gl-nickname-field">
-                            <label for="gl-input-mbg">MBG (Zen)</label>
-                            <input type="text" id="gl-input-mbg" placeholder="Isi panggilan baru...">
+                            <label for="gl-input-mbg">MBG (panggilan lama ke aku)</label>
+                            <input type="text" id="gl-input-mbg" placeholder="Isi panggilan lama buat aku...">
                         </div>
                         <div class="gl-nickname-field">
-                            <label for="gl-input-daftar">Daftar Penting (Sely)</label>
-                            <input type="text" id="gl-input-daftar" placeholder="Isi panggilan baru...">
+                            <label for="gl-input-daftar">Daftar Penting (panggilan lama ke dia)</label>
+                            <input type="text" id="gl-input-daftar" placeholder="Isi panggilan lama buat dia...">
                         </div>
                         <button id="gl-btn-simpan-nickname">Simpan</button>
                     </div>
@@ -543,7 +554,7 @@
 
                 <div id="gl-nickname-congrats">
                     <div id="gl-nickname-congrats-icon">🎉💕✨</div>
-                    <p id="gl-nickname-congrats-message">Yeay!! Data spesial kita berhasil disimpan 🥰<br>Makasih udah isi ini semua buat kita 💖</p>
+                    <p id="gl-nickname-congrats-message">Yeay!! Data spesialmu berhasil disimpan 🥰<br>Makasih udah isi ini semua buat kita 💖</p>
                 </div>
             </div>
         </div>
@@ -997,6 +1008,7 @@
         const proposalResponseEl = document.getElementById('gl-proposal-response');
         const proposalTimerEl = document.getElementById('gl-proposal-timer');
         const congratsModal = document.getElementById('gl-modal-congrats');
+        const congratsVideo = document.getElementById('gl-congrats-video');
         const btnYa = document.getElementById('gl-btn-ya');
         const btnTidak = document.getElementById('gl-btn-tidak');
         const btnSnooze = document.getElementById('gl-btn-snooze');
@@ -1037,17 +1049,41 @@
             resumeCamera();
         });
 
+        let congratsVideoTimeout = null;
+
         // Klik "Ya": modal pertanyaan langsung tertutup, lalu muncul modal congratulation.
-        // Setelah modal congratulation hilang sendiri, kembali ke tampilan galaksi & kamera nyala lagi.
+        // Pesan "Yeay" tampil dulu, lalu video joget.mp4 muncul & diputar.
+        // Setelah videonya selesai (atau waktu penutup otomatis habis), kembali ke
+        // tampilan galaksi & kamera nyala lagi.
         btnYa.addEventListener('click', () => {
             proposalModal.classList.remove('visible');
             clearSnooze();
             congratsModal.classList.add('visible');
+            congratsVideo.classList.remove('show');
+            congratsVideo.pause();
+            congratsVideo.currentTime = 0;
+
             if (congratsTimeout) clearTimeout(congratsTimeout);
-            congratsTimeout = setTimeout(() => {
+            if (congratsVideoTimeout) clearTimeout(congratsVideoTimeout);
+
+            const finishCongrats = () => {
                 congratsModal.classList.remove('visible');
+                congratsVideo.pause();
                 resumeCamera();
-            }, 3500);
+            };
+
+            // Tampilkan pesan Yeay dulu selama sesaat, baru video joget muncul & diputar
+            congratsVideoTimeout = setTimeout(() => {
+                congratsVideo.classList.add('show');
+                const playPromise = congratsVideo.play();
+                if (playPromise && playPromise.catch) {
+                    playPromise.catch(() => { /* browser mungkin memblokir autoplay bersuara, tidak apa-apa */ });
+                }
+            }, 1200);
+
+            congratsVideo.onended = finishCongrats;
+            // Penutup otomatis cadangan, jaga-jaga kalau video gagal dimuat/diputar
+            congratsTimeout = setTimeout(finishCongrats, 9000);
         });
 
         // Klik "Tidak": pop-up TETAP TERBUKA, hanya menampilkan ajakan untuk mikir lagi.
