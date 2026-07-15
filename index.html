@@ -463,6 +463,215 @@
             color: #b01867;
         }
 
+        /* ===== Modal "Tanggal Jadian & Jam" dan "Aturan Pasangan" (style sama kerennya kaya modal Nickname) ===== */
+        #gl-modal-date, #gl-modal-rules {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+        }
+        #gl-modal-date.visible, #gl-modal-rules.visible { display: flex; }
+        #gl-modal-date .date-card,
+        #gl-modal-rules .rules-card {
+            width: min(88vw, 420px);
+            background: linear-gradient(160deg, #fff5f9 0%, #ffe0ef 100%);
+            border: 2px solid #ffb3d9;
+            border-radius: 20px;
+            padding: 26px 22px 20px;
+            box-shadow: 0 14px 40px rgba(255, 20, 147, 0.45);
+            color: #8a235f;
+            font-family: 'Georgia', serif;
+            text-align: center;
+            position: relative;
+            animation: cartaAparece 0.3s ease-out;
+        }
+        #gl-date-close, #gl-rules-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 77, 166, 0.85);
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        #gl-modal-date h3, #gl-modal-rules h3 {
+            font-size: 1.2rem;
+            margin: 4px 0 16px;
+            color: #b01867;
+        }
+        .gl-date-field {
+            text-align: left;
+            margin-bottom: 14px;
+        }
+        .gl-date-field label {
+            display: block;
+            font-family: Arial, sans-serif;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #b01867;
+            margin-bottom: 5px;
+            letter-spacing: 0.3px;
+        }
+        .gl-date-field input {
+            width: 100%;
+            box-sizing: border-box;
+            border: 2px solid #ffc7e4;
+            border-radius: 10px;
+            padding: 9px 12px;
+            font-family: Arial, sans-serif;
+            font-size: 0.95rem;
+            color: #8a235f;
+            background: #fff;
+        }
+        .gl-date-field input:focus {
+            outline: none;
+            border-color: #ff4da6;
+        }
+        #gl-date-display, #gl-rules-display { display: none; }
+        #gl-date-display.visible, #gl-rules-display.visible { display: block; }
+        #gl-date-fields.hidden, #gl-rules-fields.hidden { display: none; }
+        .gl-date-display-row, .gl-rules-display-row {
+            text-align: left;
+            margin-bottom: 14px;
+        }
+        .gl-date-display-label, .gl-rules-display-label {
+            display: block;
+            font-family: Arial, sans-serif;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #b01867;
+            margin-bottom: 5px;
+            letter-spacing: 0.3px;
+            user-select: none;
+        }
+        .gl-date-display-value {
+            display: block;
+            font-family: Arial, sans-serif;
+            font-size: 1.02rem;
+            color: #8a235f;
+            padding: 9px 12px;
+            border: 2px solid #ffc7e4;
+            border-radius: 10px;
+            background: #fff;
+            min-height: 1.3em;
+        }
+        #gl-btn-simpan-date, #gl-btn-simpan-rules {
+            margin-top: 6px;
+            border: none;
+            border-radius: 999px;
+            background: #ff4da6;
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: bold;
+            padding: 10px 26px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+        }
+        #gl-btn-simpan-date:disabled, #gl-btn-simpan-rules:disabled {
+            opacity: 0.7;
+            cursor: default;
+        }
+        #gl-date-congrats, #gl-rules-congrats { display: none; }
+        #gl-date-congrats.visible, #gl-rules-congrats.visible { display: block; }
+        #gl-date-congrats-icon, #gl-rules-congrats-icon {
+            font-size: 2.6rem;
+            margin-bottom: 8px;
+            animation: cartaAparece 0.4s ease-out;
+        }
+        #gl-date-congrats-message, #gl-rules-congrats-message {
+            font-size: clamp(1.05rem, 2.8vw, 1.3rem);
+            line-height: 1.55;
+            color: #b01867;
+        }
+
+        /* ===== Khusus modal Aturan: daftar baris dinamis, bisa nambah banyak, minimal 1 keisi ===== */
+        #gl-rules-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .gl-rules-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .gl-rules-row input {
+            flex: 1;
+            min-width: 0;
+            box-sizing: border-box;
+            border: 2px solid #ffc7e4;
+            border-radius: 10px;
+            padding: 9px 12px;
+            font-family: Arial, sans-serif;
+            font-size: 0.92rem;
+            color: #8a235f;
+            background: #fff;
+        }
+        .gl-rules-row input:focus {
+            outline: none;
+            border-color: #ff4da6;
+        }
+        .gl-rules-remove {
+            flex-shrink: 0;
+            border: none;
+            border-radius: 999px;
+            background: rgba(255, 77, 166, 0.85);
+            color: #fff;
+            width: 28px;
+            height: 28px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        #gl-rules-add-btn {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            border: 2px dashed #ffb3d9;
+            border-radius: 999px;
+            background: transparent;
+            color: #b01867;
+            font-size: 0.9rem;
+            font-weight: bold;
+            padding: 9px 14px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            margin-bottom: 14px;
+        }
+        #gl-rules-warning {
+            display: none;
+            font-family: Arial, sans-serif;
+            font-size: 0.82rem;
+            color: #ff3366;
+            margin: -6px 0 10px;
+            text-align: left;
+        }
+        #gl-rules-warning.visible { display: block; }
+        .gl-rules-display-list {
+            margin: 0;
+            padding-left: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 0.98rem;
+            color: #8a235f;
+            text-align: left;
+        }
+        .gl-rules-display-list li {
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
         /* ===== Modal "Menu Pilihan" - muncul pertama saat tombol Lanjut ditekan ===== */
         #gl-modal-menu {
             position: fixed;
@@ -596,10 +805,11 @@
         <div id="gl-modal-menu">
             <div class="menu-card">
                 <button id="gl-menu-close" title="Tutup">✕</button>
-                <h3>Mau ngapain nih? 💕</h3>
+                <h3>Yuk, Mulai Dari Sini Dulu 💕</h3>
                 <div id="gl-menu-options">
                     <button class="gl-menu-option" id="gl-menu-opt-nickname">Upgrade Panggilan Spesial 💕</button>
-                    <div class="gl-menu-option-empty" id="gl-menu-opt-empty"></div>
+                    <button class="gl-menu-option" id="gl-menu-opt-date">Tanggal Jadian & Jam 💕</button>
+                    <button class="gl-menu-option" id="gl-menu-opt-rules">Aturan Buat Kita 📜</button>
                 </div>
             </div>
         </div>
@@ -639,6 +849,71 @@
                 <div id="gl-nickname-congrats">
                     <div id="gl-nickname-congrats-icon">🎉💕✨</div>
                     <p id="gl-nickname-congrats-message">Yeay!! Data spesialmu berhasil disimpan 🥰<br>Makasih udah isi ini semua buat kita 💖</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Modal "Tanggal Jadian & Jam" - muncul saat opsi menu dipilih ===== -->
+        <div id="gl-modal-date">
+            <div class="date-card">
+                <button id="gl-date-close" title="Tutup">✕</button>
+
+                <div id="gl-date-form">
+                    <h3>Tanggal Jadian & Jam 💕</h3>
+
+                    <div id="gl-date-display">
+                        <div class="gl-date-display-row">
+                            <span class="gl-date-display-label" id="gl-tanggal-tap-target">Tanggal & Jam Jadian</span>
+                            <span class="gl-date-display-value" id="gl-display-tanggaljam"></span>
+                        </div>
+                    </div>
+
+                    <div id="gl-date-fields">
+                        <div class="gl-date-field">
+                            <label for="gl-input-tanggal">Tanggal Jadian</label>
+                            <input type="date" id="gl-input-tanggal">
+                        </div>
+                        <div class="gl-date-field">
+                            <label for="gl-input-jam">Jam Jadian</label>
+                            <input type="time" id="gl-input-jam">
+                        </div>
+                        <button id="gl-btn-simpan-date">Simpan</button>
+                    </div>
+                </div>
+
+                <div id="gl-date-congrats">
+                    <div id="gl-date-congrats-icon">🎉💕✨</div>
+                    <p id="gl-date-congrats-message">Yeay!! Tanggal jadian kalian berhasil disimpan 🥰<br>Semoga makin langgeng sampai selamanya 💖</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Modal "Aturan Buat Kita" - muncul saat opsi menu dipilih, bisa isi banyak aturan minimal 1 ===== -->
+        <div id="gl-modal-rules">
+            <div class="rules-card">
+                <button id="gl-rules-close" title="Tutup">✕</button>
+
+                <div id="gl-rules-form">
+                    <h3>Aturan Buat Kita 📜</h3>
+
+                    <div id="gl-rules-display">
+                        <div class="gl-rules-display-row">
+                            <span class="gl-rules-display-label" id="gl-rules-tap-target">Aturan Buat Kita</span>
+                            <ul class="gl-rules-display-list" id="gl-rules-display-list"></ul>
+                        </div>
+                    </div>
+
+                    <div id="gl-rules-fields">
+                        <div id="gl-rules-list"></div>
+                        <button id="gl-rules-add-btn" type="button">+ Tambah Aturan</button>
+                        <p id="gl-rules-warning">Isi minimal 1 aturan dulu ya 💕</p>
+                        <button id="gl-btn-simpan-rules">Simpan</button>
+                    </div>
+                </div>
+
+                <div id="gl-rules-congrats">
+                    <div id="gl-rules-congrats-icon">🎉📜✨</div>
+                    <p id="gl-rules-congrats-message">Yeay!! Aturan kalian berhasil disimpan 🥰<br>Semoga bisa dipegang berdua ya 💖</p>
                 </div>
             </div>
         </div>
@@ -1400,6 +1675,8 @@
         const menuModal = document.getElementById('gl-modal-menu');
         const menuCloseBtn = document.getElementById('gl-menu-close');
         const menuOptNickname = document.getElementById('gl-menu-opt-nickname');
+        const menuOptDate = document.getElementById('gl-menu-opt-date');
+        const menuOptRules = document.getElementById('gl-menu-opt-rules');
 
         function openMenuModal() {
             menuModal.classList.add('visible');
@@ -1411,6 +1688,14 @@
         menuOptNickname.addEventListener('click', () => {
             closeMenuModal();
             openNicknameModal();
+        });
+        menuOptDate.addEventListener('click', () => {
+            closeMenuModal();
+            openDateModal();
+        });
+        menuOptRules.addEventListener('click', () => {
+            closeMenuModal();
+            openRulesModal();
         });
 
         // ===== Modal "Upgrade Panggilan Spesial" =====
@@ -1502,6 +1787,264 @@
                 // ✕ di halaman (gl-page-close-btn) yang diklik, bukan otomatis.
                 nicknameCongratsTimeout = setTimeout(() => {
                     closeNicknameModal();
+                }, 3500);
+            }, 500);
+        });
+
+        // ===== Modal "Tanggal Jadian & Jam" =====
+        const dateModal = document.getElementById('gl-modal-date');
+        const dateCloseBtn = document.getElementById('gl-date-close');
+        const dateForm = document.getElementById('gl-date-form');
+        const dateCongrats = document.getElementById('gl-date-congrats');
+        const inputTanggal = document.getElementById('gl-input-tanggal');
+        const inputJam = document.getElementById('gl-input-jam');
+        const btnSimpanDate = document.getElementById('gl-btn-simpan-date');
+        const dateDisplay = document.getElementById('gl-date-display');
+        const dateFields = document.getElementById('gl-date-fields');
+        const displayTanggalJam = document.getElementById('gl-display-tanggaljam');
+        const tanggalTapTarget = document.getElementById('gl-tanggal-tap-target');
+        let dateCongratsTimeout = null;
+
+        function formatTanggalJam(tanggal, jam) {
+            if (!tanggal) return '-';
+            const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+            const parts = tanggal.split('-'); // format input date: YYYY-MM-DD
+            const tahun = parseInt(parts[0], 10);
+            const bulan = bulanList[parseInt(parts[1], 10) - 1] || '';
+            const tanggalHari = parseInt(parts[2], 10);
+            const formatted = `${tanggalHari} ${bulan} ${tahun}`;
+            return jam ? `${formatted}, pukul ${jam}` : formatted;
+        }
+
+        function openDateModal() {
+            const savedTanggal = localStorage.getItem('galaxilove_tanggalJadian') || '';
+            const savedJam = localStorage.getItem('galaxilove_jamJadian') || '';
+            inputTanggal.value = savedTanggal;
+            inputJam.value = savedJam;
+
+            dateForm.style.display = 'block';
+            dateCongrats.classList.remove('visible');
+            btnSimpanDate.textContent = 'Simpan';
+            btnSimpanDate.disabled = false;
+            tanggalTapCount = 0;
+
+            if (savedTanggal) {
+                // Sudah pernah diisi -> tampil sebagai teks biasa, tidak kelihatan bisa diedit
+                displayTanggalJam.textContent = formatTanggalJam(savedTanggal, savedJam);
+                dateDisplay.classList.add('visible');
+                dateFields.classList.add('hidden');
+            } else {
+                // Belum pernah diisi -> langsung bisa isi
+                dateDisplay.classList.remove('visible');
+                dateFields.classList.remove('hidden');
+            }
+
+            dateModal.classList.add('visible');
+        }
+
+        function unlockDateFields() {
+            dateDisplay.classList.remove('visible');
+            dateFields.classList.remove('hidden');
+        }
+
+        // Rahasia: klik/tap 5x berturut-turut di label buat buka mode edit,
+        // sama seperti modal Panggilan Spesial.
+        let tanggalTapCount = 0;
+        let tanggalTapTimer = null;
+        tanggalTapTarget.addEventListener('click', () => {
+            tanggalTapCount++;
+            if (tanggalTapTimer) clearTimeout(tanggalTapTimer);
+            tanggalTapTimer = setTimeout(() => { tanggalTapCount = 0; }, 2000);
+
+            if (tanggalTapCount >= 5) {
+                tanggalTapCount = 0;
+                clearTimeout(tanggalTapTimer);
+                unlockDateFields();
+            }
+        });
+
+        function closeDateModal() {
+            dateModal.classList.remove('visible');
+            if (dateCongratsTimeout) {
+                clearTimeout(dateCongratsTimeout);
+                dateCongratsTimeout = null;
+            }
+        }
+
+        dateCloseBtn.addEventListener('click', closeDateModal);
+
+        btnSimpanDate.addEventListener('click', () => {
+            if (!inputTanggal.value) {
+                inputTanggal.focus();
+                return;
+            }
+            localStorage.setItem('galaxilove_tanggalJadian', inputTanggal.value);
+            localStorage.setItem('galaxilove_jamJadian', inputJam.value);
+
+            btnSimpanDate.textContent = 'Tersimpan ✓';
+            btnSimpanDate.disabled = true;
+
+            setTimeout(() => {
+                dateForm.style.display = 'none';
+                dateCongrats.classList.add('visible');
+
+                dateCongratsTimeout = setTimeout(() => {
+                    closeDateModal();
+                }, 3500);
+            }, 500);
+        });
+
+        // ===== Modal "Aturan Buat Kita" (bisa isi banyak aturan, minimal 1 harus terisi) =====
+        const rulesModal = document.getElementById('gl-modal-rules');
+        const rulesCloseBtn = document.getElementById('gl-rules-close');
+        const rulesForm = document.getElementById('gl-rules-form');
+        const rulesCongrats = document.getElementById('gl-rules-congrats');
+        const rulesList = document.getElementById('gl-rules-list');
+        const rulesAddBtn = document.getElementById('gl-rules-add-btn');
+        const rulesWarning = document.getElementById('gl-rules-warning');
+        const btnSimpanRules = document.getElementById('gl-btn-simpan-rules');
+        const rulesDisplay = document.getElementById('gl-rules-display');
+        const rulesFields = document.getElementById('gl-rules-fields');
+        const rulesDisplayList = document.getElementById('gl-rules-display-list');
+        const rulesTapTarget = document.getElementById('gl-rules-tap-target');
+        let rulesCongratsTimeout = null;
+
+        function makeRuleRow(value) {
+            const row = document.createElement('div');
+            row.className = 'gl-rules-row';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'gl-rules-input';
+            input.placeholder = 'Contoh: Nggak boleh bohong satu sama lain...';
+            input.value = value || '';
+            input.addEventListener('input', () => {
+                if (rulesWarning.classList.contains('visible')) rulesWarning.classList.remove('visible');
+            });
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'gl-rules-remove';
+            removeBtn.title = 'Hapus';
+            removeBtn.textContent = '✕';
+            removeBtn.addEventListener('click', () => {
+                // Minimal selalu ada 1 baris tersisa di form, biar gampang diisi lagi.
+                if (rulesList.children.length > 1) {
+                    row.remove();
+                } else {
+                    input.value = '';
+                }
+            });
+
+            row.appendChild(input);
+            row.appendChild(removeBtn);
+            return row;
+        }
+
+        function getSavedAturan() {
+            try {
+                const raw = localStorage.getItem('galaxilove_aturan');
+                const arr = raw ? JSON.parse(raw) : [];
+                return Array.isArray(arr) ? arr : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function openRulesModal() {
+            const savedAturan = getSavedAturan();
+
+            rulesForm.style.display = 'block';
+            rulesCongrats.classList.remove('visible');
+            btnSimpanRules.textContent = 'Simpan';
+            btnSimpanRules.disabled = false;
+            rulesWarning.classList.remove('visible');
+            rulesTapCount = 0;
+
+            rulesList.innerHTML = '';
+            if (savedAturan.length > 0) {
+                savedAturan.forEach(v => rulesList.appendChild(makeRuleRow(v)));
+            } else {
+                rulesList.appendChild(makeRuleRow(''));
+            }
+
+            if (savedAturan.length > 0) {
+                // Sudah pernah diisi -> tampil sebagai daftar biasa, tidak kelihatan bisa diedit
+                rulesDisplayList.innerHTML = '';
+                savedAturan.forEach(v => {
+                    const li = document.createElement('li');
+                    li.textContent = v;
+                    rulesDisplayList.appendChild(li);
+                });
+                rulesDisplay.classList.add('visible');
+                rulesFields.classList.add('hidden');
+            } else {
+                // Belum pernah diisi -> langsung bisa isi
+                rulesDisplay.classList.remove('visible');
+                rulesFields.classList.remove('hidden');
+            }
+
+            rulesModal.classList.add('visible');
+        }
+
+        function unlockRulesFields() {
+            rulesDisplay.classList.remove('visible');
+            rulesFields.classList.remove('hidden');
+        }
+
+        // Rahasia: klik/tap 5x berturut-turut di label buat buka mode edit,
+        // sama seperti modal-modal lainnya.
+        let rulesTapCount = 0;
+        let rulesTapTimer = null;
+        rulesTapTarget.addEventListener('click', () => {
+            rulesTapCount++;
+            if (rulesTapTimer) clearTimeout(rulesTapTimer);
+            rulesTapTimer = setTimeout(() => { rulesTapCount = 0; }, 2000);
+
+            if (rulesTapCount >= 5) {
+                rulesTapCount = 0;
+                clearTimeout(rulesTapTimer);
+                unlockRulesFields();
+            }
+        });
+
+        rulesAddBtn.addEventListener('click', () => {
+            rulesList.appendChild(makeRuleRow(''));
+            const lastInput = rulesList.lastElementChild.querySelector('input');
+            if (lastInput) lastInput.focus();
+        });
+
+        function closeRulesModal() {
+            rulesModal.classList.remove('visible');
+            if (rulesCongratsTimeout) {
+                clearTimeout(rulesCongratsTimeout);
+                rulesCongratsTimeout = null;
+            }
+        }
+
+        rulesCloseBtn.addEventListener('click', closeRulesModal);
+
+        btnSimpanRules.addEventListener('click', () => {
+            const inputs = Array.from(rulesList.querySelectorAll('.gl-rules-input'));
+            const filled = inputs.map(i => i.value.trim()).filter(v => v.length > 0);
+
+            if (filled.length < 1) {
+                rulesWarning.classList.add('visible');
+                return;
+            }
+            rulesWarning.classList.remove('visible');
+
+            localStorage.setItem('galaxilove_aturan', JSON.stringify(filled));
+
+            btnSimpanRules.textContent = 'Tersimpan ✓';
+            btnSimpanRules.disabled = true;
+
+            setTimeout(() => {
+                rulesForm.style.display = 'none';
+                rulesCongrats.classList.add('visible');
+
+                rulesCongratsTimeout = setTimeout(() => {
+                    closeRulesModal();
                 }, 3500);
             }, 500);
         });
@@ -1833,6 +2376,8 @@
                 overlay.style.display = 'none';
                 musica.pause();
                 closeNicknameModal();
+                closeDateModal();
+                closeRulesModal();
                 if (typeof resumeCamera === 'function') resumeCamera(); // nyalakan lagi kamera saat kembali ke mode gestur utama
             }
         };
