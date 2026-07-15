@@ -462,6 +462,78 @@
             line-height: 1.55;
             color: #b01867;
         }
+
+        /* ===== Modal "Menu Pilihan" - muncul pertama saat tombol Lanjut ditekan ===== */
+        #gl-modal-menu {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+        }
+        #gl-modal-menu.visible { display: flex; }
+        #gl-modal-menu .menu-card {
+            width: min(88vw, 420px);
+            background: linear-gradient(160deg, #fff5f9 0%, #ffe0ef 100%);
+            border: 2px solid #ffb3d9;
+            border-radius: 20px;
+            padding: 26px 22px 20px;
+            box-shadow: 0 14px 40px rgba(255, 20, 147, 0.45);
+            color: #8a235f;
+            font-family: 'Georgia', serif;
+            text-align: center;
+            position: relative;
+            animation: cartaAparece 0.3s ease-out;
+        }
+        #gl-menu-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 77, 166, 0.85);
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        #gl-modal-menu h3 {
+            font-size: 1.2rem;
+            margin: 4px 0 18px;
+            color: #b01867;
+        }
+        #gl-menu-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .gl-menu-option {
+            border: none;
+            border-radius: 999px;
+            background: #ff4da6;
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: bold;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+        }
+        .gl-menu-option-empty {
+            border: 2px dashed #ffc7e4;
+            border-radius: 999px;
+            background: transparent;
+            color: #ffb3d9;
+            font-size: 0.85rem;
+            font-family: Arial, sans-serif;
+            padding: 12px 20px;
+            min-height: 1.2em;
+        }
     </style>
 </head>
 <body>
@@ -520,7 +592,19 @@
             </div>
         </div>
 
-        <!-- ===== Modal "Upgrade Panggilan Spesial" - muncul saat tombol Lanjut ditekan ===== -->
+        <!-- ===== Modal "Menu Pilihan" - muncul pertama saat tombol Lanjut ditekan ===== -->
+        <div id="gl-modal-menu">
+            <div class="menu-card">
+                <button id="gl-menu-close" title="Tutup">✕</button>
+                <h3>Mau ngapain nih? 💕</h3>
+                <div id="gl-menu-options">
+                    <button class="gl-menu-option" id="gl-menu-opt-nickname">Upgrade Panggilan Spesial 💕</button>
+                    <div class="gl-menu-option-empty" id="gl-menu-opt-empty"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Modal "Upgrade Panggilan Spesial" - muncul saat opsi menu dipilih ===== -->
         <div id="gl-modal-nickname">
             <div class="nickname-card">
                 <button id="gl-nickname-close" title="Tutup">✕</button>
@@ -1312,6 +1396,23 @@
         const pageCloseBtn = document.getElementById('gl-page-close-btn');
         const musica = document.getElementById('gl-musica-fondo');
 
+        // ===== Modal "Menu Pilihan" (muncul pertama saat Lanjut diklik) =====
+        const menuModal = document.getElementById('gl-modal-menu');
+        const menuCloseBtn = document.getElementById('gl-menu-close');
+        const menuOptNickname = document.getElementById('gl-menu-opt-nickname');
+
+        function openMenuModal() {
+            menuModal.classList.add('visible');
+        }
+        function closeMenuModal() {
+            menuModal.classList.remove('visible');
+        }
+        menuCloseBtn.addEventListener('click', closeMenuModal);
+        menuOptNickname.addEventListener('click', () => {
+            closeMenuModal();
+            openNicknameModal();
+        });
+
         // ===== Modal "Upgrade Panggilan Spesial" =====
         const nicknameModal = document.getElementById('gl-modal-nickname');
         const nicknameCloseBtn = document.getElementById('gl-nickname-close');
@@ -1653,7 +1754,7 @@
             });
 
             closeBtn.addEventListener('click', () => {
-                if (active) openNicknameModal();
+                if (active) openMenuModal();
             });
 
             // Tombol ✕ di HALAMAN (bukan di modal) - satu-satunya cara menutup
