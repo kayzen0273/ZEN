@@ -659,6 +659,34 @@
             text-align: left;
         }
         #gl-rules-warning.visible { display: block; }
+        #gl-rules-display { display: none; }
+        #gl-rules-display.visible { display: block; }
+        .gl-rules-display-list {
+            margin: 0 0 16px;
+            padding-left: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 0.98rem;
+            color: #8a235f;
+            text-align: left;
+        }
+        .gl-rules-display-list li {
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+        #gl-rules-edit-btn {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            border: none;
+            border-radius: 999px;
+            background: #ff4da6;
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: bold;
+            padding: 9px 14px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+        }
 
         /* ===== Modal "Menu Pilihan" - muncul pertama saat tombol Lanjut ditekan ===== */
         #gl-modal-menu {
@@ -883,6 +911,11 @@
 
                 <div id="gl-rules-form">
                     <h3>Aturan Buat Kita 📜</h3>
+
+                    <div id="gl-rules-display">
+                        <ul class="gl-rules-display-list" id="gl-rules-display-list"></ul>
+                        <button id="gl-rules-edit-btn" type="button">✏️ Edit Aturan</button>
+                    </div>
 
                     <div id="gl-rules-fields">
                         <div id="gl-rules-list"></div>
@@ -1875,7 +1908,7 @@
             }, 500);
         });
 
-        // ===== Modal "Aturan Buat Kita" (bisa isi banyak aturan, minimal 1 harus terisi, selalu bisa diedit) =====
+        // ===== Modal "Aturan Buat Kita" (bisa isi banyak aturan, minimal 1 harus terisi) =====
         const rulesModal = document.getElementById('gl-modal-rules');
         const rulesCloseBtn = document.getElementById('gl-rules-close');
         const rulesForm = document.getElementById('gl-rules-form');
@@ -1884,6 +1917,10 @@
         const rulesAddBtn = document.getElementById('gl-rules-add-btn');
         const rulesWarning = document.getElementById('gl-rules-warning');
         const btnSimpanRules = document.getElementById('gl-btn-simpan-rules');
+        const rulesDisplay = document.getElementById('gl-rules-display');
+        const rulesFields = document.getElementById('gl-rules-fields');
+        const rulesDisplayList = document.getElementById('gl-rules-display-list');
+        const rulesEditBtn = document.getElementById('gl-rules-edit-btn');
         let rulesCongratsTimeout = null;
 
         function makeRuleRow(value) {
@@ -1928,6 +1965,17 @@
             }
         }
 
+        function showRulesEditView(savedAturan) {
+            rulesList.innerHTML = '';
+            if (savedAturan.length > 0) {
+                savedAturan.forEach(v => rulesList.appendChild(makeRuleRow(v)));
+            } else {
+                rulesList.appendChild(makeRuleRow(''));
+            }
+            rulesDisplay.classList.remove('visible');
+            rulesFields.classList.remove('hidden');
+        }
+
         function openRulesModal() {
             const savedAturan = getSavedAturan();
 
@@ -1937,17 +1985,28 @@
             btnSimpanRules.disabled = false;
             rulesWarning.classList.remove('visible');
 
-            // Selalu tampil sebagai form yang bisa langsung diedit, diisi ulang
-            // dengan aturan yang sudah pernah disimpan (kalau ada).
-            rulesList.innerHTML = '';
             if (savedAturan.length > 0) {
-                savedAturan.forEach(v => rulesList.appendChild(makeRuleRow(v)));
+                // Sudah pernah diisi -> tampil dulu sebagai tampilan tersimpan biasa,
+                // ada tombol Edit yang jelas kalau mau ubah.
+                rulesDisplayList.innerHTML = '';
+                savedAturan.forEach(v => {
+                    const li = document.createElement('li');
+                    li.textContent = v;
+                    rulesDisplayList.appendChild(li);
+                });
+                rulesDisplay.classList.add('visible');
+                rulesFields.classList.add('hidden');
             } else {
-                rulesList.appendChild(makeRuleRow(''));
+                // Belum pernah diisi -> langsung tampil form buat isi
+                showRulesEditView(savedAturan);
             }
 
             rulesModal.classList.add('visible');
         }
+
+        rulesEditBtn.addEventListener('click', () => {
+            showRulesEditView(getSavedAturan());
+        });
 
         rulesAddBtn.addEventListener('click', () => {
             rulesList.appendChild(makeRuleRow(''));
