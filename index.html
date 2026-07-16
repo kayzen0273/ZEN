@@ -537,14 +537,14 @@
             outline: none;
             border-color: #ff4da6;
         }
-        #gl-date-display, #gl-rules-display { display: none; }
-        #gl-date-display.visible, #gl-rules-display.visible { display: block; }
+        #gl-date-display { display: none; }
+        #gl-date-display.visible { display: block; }
         #gl-date-fields.hidden, #gl-rules-fields.hidden { display: none; }
-        .gl-date-display-row, .gl-rules-display-row {
+        .gl-date-display-row {
             text-align: left;
             margin-bottom: 14px;
         }
-        .gl-date-display-label, .gl-rules-display-label {
+        .gl-date-display-label {
             display: block;
             font-family: Arial, sans-serif;
             font-size: 0.85rem;
@@ -659,18 +659,6 @@
             text-align: left;
         }
         #gl-rules-warning.visible { display: block; }
-        .gl-rules-display-list {
-            margin: 0;
-            padding-left: 20px;
-            font-family: Arial, sans-serif;
-            font-size: 0.98rem;
-            color: #8a235f;
-            text-align: left;
-        }
-        .gl-rules-display-list li {
-            margin-bottom: 6px;
-            line-height: 1.4;
-        }
 
         /* ===== Modal "Menu Pilihan" - muncul pertama saat tombol Lanjut ditekan ===== */
         #gl-modal-menu {
@@ -895,13 +883,6 @@
 
                 <div id="gl-rules-form">
                     <h3>Aturan Buat Kita 📜</h3>
-
-                    <div id="gl-rules-display">
-                        <div class="gl-rules-display-row">
-                            <span class="gl-rules-display-label" id="gl-rules-tap-target">Aturan Buat Kita</span>
-                            <ul class="gl-rules-display-list" id="gl-rules-display-list"></ul>
-                        </div>
-                    </div>
 
                     <div id="gl-rules-fields">
                         <div id="gl-rules-list"></div>
@@ -1894,7 +1875,7 @@
             }, 500);
         });
 
-        // ===== Modal "Aturan Buat Kita" (bisa isi banyak aturan, minimal 1 harus terisi) =====
+        // ===== Modal "Aturan Buat Kita" (bisa isi banyak aturan, minimal 1 harus terisi, selalu bisa diedit) =====
         const rulesModal = document.getElementById('gl-modal-rules');
         const rulesCloseBtn = document.getElementById('gl-rules-close');
         const rulesForm = document.getElementById('gl-rules-form');
@@ -1903,10 +1884,6 @@
         const rulesAddBtn = document.getElementById('gl-rules-add-btn');
         const rulesWarning = document.getElementById('gl-rules-warning');
         const btnSimpanRules = document.getElementById('gl-btn-simpan-rules');
-        const rulesDisplay = document.getElementById('gl-rules-display');
-        const rulesFields = document.getElementById('gl-rules-fields');
-        const rulesDisplayList = document.getElementById('gl-rules-display-list');
-        const rulesTapTarget = document.getElementById('gl-rules-tap-target');
         let rulesCongratsTimeout = null;
 
         function makeRuleRow(value) {
@@ -1959,8 +1936,9 @@
             btnSimpanRules.textContent = 'Simpan';
             btnSimpanRules.disabled = false;
             rulesWarning.classList.remove('visible');
-            rulesTapCount = 0;
 
+            // Selalu tampil sebagai form yang bisa langsung diedit, diisi ulang
+            // dengan aturan yang sudah pernah disimpan (kalau ada).
             rulesList.innerHTML = '';
             if (savedAturan.length > 0) {
                 savedAturan.forEach(v => rulesList.appendChild(makeRuleRow(v)));
@@ -1968,45 +1946,8 @@
                 rulesList.appendChild(makeRuleRow(''));
             }
 
-            if (savedAturan.length > 0) {
-                // Sudah pernah diisi -> tampil sebagai daftar biasa, tidak kelihatan bisa diedit
-                rulesDisplayList.innerHTML = '';
-                savedAturan.forEach(v => {
-                    const li = document.createElement('li');
-                    li.textContent = v;
-                    rulesDisplayList.appendChild(li);
-                });
-                rulesDisplay.classList.add('visible');
-                rulesFields.classList.add('hidden');
-            } else {
-                // Belum pernah diisi -> langsung bisa isi
-                rulesDisplay.classList.remove('visible');
-                rulesFields.classList.remove('hidden');
-            }
-
             rulesModal.classList.add('visible');
         }
-
-        function unlockRulesFields() {
-            rulesDisplay.classList.remove('visible');
-            rulesFields.classList.remove('hidden');
-        }
-
-        // Rahasia: klik/tap 5x berturut-turut di label buat buka mode edit,
-        // sama seperti modal-modal lainnya.
-        let rulesTapCount = 0;
-        let rulesTapTimer = null;
-        rulesTapTarget.addEventListener('click', () => {
-            rulesTapCount++;
-            if (rulesTapTimer) clearTimeout(rulesTapTimer);
-            rulesTapTimer = setTimeout(() => { rulesTapCount = 0; }, 2000);
-
-            if (rulesTapCount >= 5) {
-                rulesTapCount = 0;
-                clearTimeout(rulesTapTimer);
-                unlockRulesFields();
-            }
-        });
 
         rulesAddBtn.addEventListener('click', () => {
             rulesList.appendChild(makeRuleRow(''));
