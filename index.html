@@ -594,98 +594,231 @@
             color: #b01867;
         }
 
-        /* ===== Khusus modal Aturan: daftar baris dinamis, bisa nambah banyak, minimal 1 keisi ===== */
-        #gl-rules-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 10px;
+        /* ===== Khusus modal Aturan: konsep "mading" / papan tempel berkategori ===== */
+        #gl-modal-rules .rules-card {
+            width: min(94vw, 760px);
+            max-height: 90vh;
+            overflow-y: auto;
+            text-align: left;
         }
-        .gl-rules-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        #gl-modal-rules .rules-card h3 { text-align: center; }
+        .gl-rules-intro {
+            font-family: Arial, sans-serif;
+            font-size: 0.85rem;
+            color: #b01867;
+            text-align: center;
+            line-height: 1.5;
+            margin: 0 0 18px;
         }
-        .gl-rules-row input {
-            flex: 1;
-            min-width: 0;
+        .gl-rules-composer textarea {
+            width: 100%;
             box-sizing: border-box;
+            resize: vertical;
+            min-height: 58px;
             border: 2px solid #ffc7e4;
-            border-radius: 10px;
-            padding: 9px 12px;
+            border-radius: 14px;
+            padding: 10px 14px;
             font-family: Arial, sans-serif;
             font-size: 0.92rem;
             color: #8a235f;
             background: #fff;
-        }
-        .gl-rules-row input:focus {
             outline: none;
-            border-color: #ff4da6;
         }
-        .gl-rules-remove {
-            flex-shrink: 0;
-            border: none;
-            border-radius: 999px;
-            background: rgba(255, 77, 166, 0.85);
-            color: #fff;
-            width: 28px;
-            height: 28px;
-            font-size: 14px;
+        .gl-rules-composer textarea:focus { border-color: #ff4da6; }
+        .gl-rules-composer textarea::placeholder { color: #d9a9c4; }
+
+        .gl-rules-chip-row { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0; }
+        .gl-rules-chip {
+            border: 2px solid var(--chip-c, #ff4da6);
+            background: #fff;
+            color: var(--chip-c, #ff4da6);
+            font-family: Arial, sans-serif;
             font-weight: bold;
-            cursor: pointer;
-            line-height: 1;
-        }
-        #gl-rules-add-btn {
-            display: block;
-            width: 100%;
-            box-sizing: border-box;
-            border: 2px dashed #ffb3d9;
+            font-size: 0.75rem;
+            padding: 6px 12px;
             border-radius: 999px;
-            background: transparent;
-            color: #b01867;
-            font-size: 0.9rem;
-            font-weight: bold;
-            padding: 9px 14px;
             cursor: pointer;
+            transition: transform .12s ease, background .15s ease, color .15s ease;
+        }
+        .gl-rules-chip:hover { transform: translateY(-2px); }
+        .gl-rules-chip.active { background: var(--chip-c, #ff4da6); color: #fff; }
+
+        .gl-rules-composer-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+        .gl-rules-charcount { font-size: 0.7rem; color: #c98fb0; margin-right: auto; }
+
+        .gl-rules-btn {
             font-family: Arial, sans-serif;
-            margin-bottom: 14px;
-        }
-        #gl-rules-warning {
-            display: none;
-            font-family: Arial, sans-serif;
-            font-size: 0.82rem;
-            color: #ff3366;
-            margin: -6px 0 10px;
-            text-align: left;
-        }
-        #gl-rules-warning.visible { display: block; }
-        #gl-rules-display { display: none; }
-        #gl-rules-display.visible { display: block; }
-        .gl-rules-display-list {
-            margin: 0 0 16px;
-            padding-left: 20px;
-            font-family: Arial, sans-serif;
-            font-size: 0.98rem;
-            color: #8a235f;
-            text-align: left;
-        }
-        .gl-rules-display-list li {
-            margin-bottom: 6px;
-            line-height: 1.4;
-        }
-        #gl-rules-edit-btn {
-            display: block;
-            width: 100%;
-            box-sizing: border-box;
+            font-weight: bold;
+            font-size: 0.86rem;
             border: none;
             border-radius: 999px;
             background: #ff4da6;
             color: #fff;
-            font-size: 0.9rem;
-            font-weight: bold;
-            padding: 9px 14px;
+            padding: 9px 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(255, 20, 147, 0.35);
+            transition: transform .1s ease;
+        }
+        .gl-rules-btn:hover { transform: translateY(-2px); }
+        .gl-rules-btn.ghost { background: transparent; color: #b01867; border: 2px solid #ffc7e4; box-shadow: none; }
+        .gl-rules-btn.small { font-size: 0.76rem; padding: 7px 14px; }
+
+        .gl-rules-idea-box {
+            margin: 16px 0;
+            border: 2px dashed #ffc7e4;
+            border-radius: 14px;
+            padding: 10px 14px;
+        }
+        .gl-rules-idea-box summary {
             cursor: pointer;
             font-family: Arial, sans-serif;
+            font-weight: bold;
+            color: #b01867;
+            font-size: 0.85rem;
+            outline: none;
+            list-style: none;
+        }
+        .gl-rules-idea-box summary::-webkit-details-marker { display: none; }
+        .gl-rules-idea-box summary::before { content: '▸ '; }
+        .gl-rules-idea-box[open] summary::before { content: '▾ '; }
+        .gl-rules-idea-box[open] summary { margin-bottom: 10px; }
+
+        .gl-rules-sugg-groups { display: flex; flex-direction: column; gap: 12px; }
+        .gl-rules-sugg-groups h4 {
+            font-family: Arial, sans-serif;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--g-c, #b01867);
+            margin: 0 0 6px;
+        }
+        .gl-rules-sugg-chip {
+            border: 2px dashed var(--g-c, #ffb3d9);
+            background: transparent;
+            color: #8a235f;
+            font-family: Arial, sans-serif;
+            font-size: 0.76rem;
+            padding: 6px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            margin: 0 6px 6px 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: transform .12s ease, background .15s ease;
+        }
+        .gl-rules-sugg-chip:hover { transform: translateY(-2px); background: rgba(255, 179, 217, 0.18); }
+        .gl-rules-sugg-chip .plus { font-weight: 900; color: var(--g-c, #ff4da6); }
+        .gl-rules-sugg-chip[disabled] { opacity: 0.35; cursor: default; transform: none; }
+
+        .gl-rules-filter-row { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; margin: 18px 0 12px; }
+        .gl-rules-filter-row .count { font-size: 0.7rem; color: #c98fb0; margin-left: auto; font-weight: bold; white-space: nowrap; }
+
+        .gl-rules-board {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 22px 14px;
+            padding: 8px 2px 4px;
+        }
+        .gl-rules-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 26px 14px;
+            color: #c98fb0;
+            font-family: Arial, sans-serif;
+            font-size: 0.85rem;
+        }
+        .gl-rules-empty .em { font-size: 1.8rem; display: block; margin-bottom: 8px; }
+
+        .gl-rules-card {
+            position: relative;
+            background: #fffdfc;
+            border: 1.5px solid #ffdcee;
+            border-radius: 12px;
+            padding: 20px 12px 12px;
+            min-height: 104px;
+            box-shadow: 0 4px 12px rgba(255, 20, 147, 0.15);
+            font-family: Arial, sans-serif;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: #5a2648;
+            transition: transform .18s ease, box-shadow .18s ease;
+        }
+        .gl-rules-card:hover {
+            transform: translateY(-3px) rotate(0deg) !important;
+            box-shadow: 0 8px 18px rgba(255, 20, 147, 0.28);
+        }
+        .gl-rules-tape {
+            position: absolute;
+            top: -9px;
+            left: 50%;
+            width: 46px;
+            height: 16px;
+            transform: translateX(-50%) rotate(var(--tape-rot, -3deg));
+            background: var(--tape-c, #ffb3d9);
+            opacity: 0.85;
+            border-radius: 2px;
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.12);
+        }
+        .gl-rules-card .cat-label {
+            display: inline-block;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-size: 0.58rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--cat-c, #b01867);
+            background: color-mix(in srgb, var(--cat-c, #ffb3d9) 18%, white);
+            padding: 2px 8px;
+            border-radius: 999px;
+            margin-bottom: 8px;
+        }
+        .gl-rules-card p { margin: 0; word-break: break-word; }
+        .gl-rules-card .del {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: #c98fb0;
+            font-size: 0.88rem;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity .15s ease, background .15s ease, color .15s ease;
+        }
+        .gl-rules-card:hover .del { opacity: 1; }
+        .gl-rules-card .del:hover { background: #ff4da6; color: #fff; }
+
+        .gl-rules-footer-actions { display: flex; justify-content: center; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+
+        .gl-rules-toast {
+            position: fixed;
+            bottom: 26px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #8a235f;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 999px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .25s ease, transform .25s ease;
+            z-index: 120;
+            font-size: 0.82rem;
+        }
+        .gl-rules-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        @media (max-width: 480px) {
+            .gl-rules-board { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 18px 10px; }
         }
 
         /* ===== Modal "Menu Pilihan" - muncul pertama saat tombol Lanjut ditekan ===== */
@@ -840,23 +973,23 @@
 
                     <div id="gl-nickname-display">
                         <div class="gl-nickname-display-row">
-                            <span class="gl-nickname-display-label" id="gl-mbg-tap-target">MBG</span>
+                            <span class="gl-nickname-display-label" id="gl-mbg-tap-target">MBG (Zen)</span>
                             <span class="gl-nickname-display-value" id="gl-display-mbg"></span>
                         </div>
                         <div class="gl-nickname-display-row">
-                            <span class="gl-nickname-display-label">Daftar Penting</span>
+                            <span class="gl-nickname-display-label">Daftar Penting (Sely)</span>
                             <span class="gl-nickname-display-value" id="gl-display-daftar"></span>
                         </div>
                     </div>
 
                     <div id="gl-nickname-fields">
                         <div class="gl-nickname-field">
-                            <label for="gl-input-mbg">MBG (panggilan lama ke aku)</label>
-                            <input type="text" id="gl-input-mbg" placeholder="Isi panggilan lama buat aku...">
+                            <label for="gl-input-mbg">MBG (Zen)</label>
+                            <input type="text" id="gl-input-mbg" placeholder="Isi panggilan baru...">
                         </div>
                         <div class="gl-nickname-field">
-                            <label for="gl-input-daftar">Daftar Penting (panggilan lama ke dia)</label>
-                            <input type="text" id="gl-input-daftar" placeholder="Isi panggilan lama buat dia...">
+                            <label for="gl-input-daftar">Daftar Penting (Sely)</label>
+                            <input type="text" id="gl-input-daftar" placeholder="Isi panggilan baru...">
                         </div>
                         <button id="gl-btn-simpan-nickname">Simpan</button>
                     </div>
@@ -864,7 +997,7 @@
 
                 <div id="gl-nickname-congrats">
                     <div id="gl-nickname-congrats-icon">🎉💕✨</div>
-                    <p id="gl-nickname-congrats-message">Yeay!! Data spesialmu berhasil disimpan 🥰<br>Makasih udah isi ini semua buat kita 💖</p>
+                    <p id="gl-nickname-congrats-message">Yeay!! Data spesial kita berhasil disimpan 🥰<br>Makasih udah isi ini semua buat kita 💖</p>
                 </div>
             </div>
         </div>
@@ -904,33 +1037,38 @@
             </div>
         </div>
 
-        <!-- ===== Modal "Aturan Buat Kita" - muncul saat opsi menu dipilih, bisa isi banyak aturan minimal 1 ===== -->
+        <!-- ===== Modal "Aturan Buat Kita" - papan mading berdua, bisa tempel banyak aturan berkategori ===== -->
         <div id="gl-modal-rules">
             <div class="rules-card">
                 <button id="gl-rules-close" title="Tutup">✕</button>
 
-                <div id="gl-rules-form">
-                    <h3>Aturan Buat Kita 📜</h3>
+                <h3>Aturan Buat Kita 📜</h3>
+                <p class="gl-rules-intro">Tempel aturan kalian di sini kayak mading berdua. Tulis sendiri, atau ambil dari ide di bawah.</p>
 
-                    <div id="gl-rules-display">
-                        <ul class="gl-rules-display-list" id="gl-rules-display-list"></ul>
-                        <button id="gl-rules-edit-btn" type="button">✏️ Edit Aturan</button>
-                    </div>
-
-                    <div id="gl-rules-fields">
-                        <div id="gl-rules-list"></div>
-                        <button id="gl-rules-add-btn" type="button">+ Tambah Aturan</button>
-                        <p id="gl-rules-warning">Isi minimal 1 aturan dulu ya 💕</p>
-                        <button id="gl-btn-simpan-rules">Simpan</button>
+                <div class="gl-rules-composer">
+                    <textarea id="gl-rules-input" maxlength="140" placeholder="Contoh: wajib bilang 'hati-hati di jalan' setiap kali salah satu pergi"></textarea>
+                    <div class="gl-rules-chip-row" id="gl-rules-cat-chips"></div>
+                    <div class="gl-rules-composer-footer">
+                        <span class="gl-rules-charcount" id="gl-rules-charcount">0/140</span>
+                        <button class="gl-rules-btn" id="gl-rules-add-btn" type="button">+ Tempel ke papan</button>
                     </div>
                 </div>
 
-                <div id="gl-rules-congrats">
-                    <div id="gl-rules-congrats-icon">🎉📜✨</div>
-                    <p id="gl-rules-congrats-message">Yeay!! Aturan kalian berhasil disimpan 🥰<br>Semoga bisa dipegang berdua ya 💖</p>
+                <details class="gl-rules-idea-box">
+                    <summary>Butuh ide? 💡</summary>
+                    <div class="gl-rules-sugg-groups" id="gl-rules-sugg-groups"></div>
+                </details>
+
+                <div class="gl-rules-filter-row" id="gl-rules-filter-row"></div>
+                <div class="gl-rules-board" id="gl-rules-board"></div>
+
+                <div class="gl-rules-footer-actions">
+                    <button class="gl-rules-btn ghost small" id="gl-rules-copy-btn" type="button">Salin sebagai teks</button>
+                    <button class="gl-rules-btn ghost small" id="gl-rules-reset-btn" type="button">Kosongkan papan</button>
                 </div>
             </div>
         </div>
+        <div class="gl-rules-toast" id="gl-rules-toast"></div>
 
         <audio id="gl-musica-fondo" loop>
             <source src="cintanya akuu.mp3" type="audio/mpeg">
@@ -1908,146 +2046,329 @@
             }, 500);
         });
 
-        // ===== Modal "Aturan Buat Kita" (bisa isi banyak aturan, minimal 1 harus terisi) =====
+        // ===== Modal "Aturan Buat Kita" - papan mading berdua (kategori + ide + kartu tertempel) =====
         const rulesModal = document.getElementById('gl-modal-rules');
         const rulesCloseBtn = document.getElementById('gl-rules-close');
-        const rulesForm = document.getElementById('gl-rules-form');
-        const rulesCongrats = document.getElementById('gl-rules-congrats');
-        const rulesList = document.getElementById('gl-rules-list');
+        const rulesInput = document.getElementById('gl-rules-input');
+        const rulesCharCount = document.getElementById('gl-rules-charcount');
+        const rulesCatChipsEl = document.getElementById('gl-rules-cat-chips');
         const rulesAddBtn = document.getElementById('gl-rules-add-btn');
-        const rulesWarning = document.getElementById('gl-rules-warning');
-        const btnSimpanRules = document.getElementById('gl-btn-simpan-rules');
-        const rulesDisplay = document.getElementById('gl-rules-display');
-        const rulesFields = document.getElementById('gl-rules-fields');
-        const rulesDisplayList = document.getElementById('gl-rules-display-list');
-        const rulesEditBtn = document.getElementById('gl-rules-edit-btn');
-        let rulesCongratsTimeout = null;
+        const rulesSuggGroupsEl = document.getElementById('gl-rules-sugg-groups');
+        const rulesFilterRowEl = document.getElementById('gl-rules-filter-row');
+        const rulesBoardEl = document.getElementById('gl-rules-board');
+        const rulesCopyBtn = document.getElementById('gl-rules-copy-btn');
+        const rulesResetBtn = document.getElementById('gl-rules-reset-btn');
+        const rulesToastEl = document.getElementById('gl-rules-toast');
 
-        function makeRuleRow(value) {
-            const row = document.createElement('div');
-            row.className = 'gl-rules-row';
+        const RULE_CATEGORIES = [
+            { id: 'komunikasi', label: 'Komunikasi', c: '#ff4da6' },
+            { id: 'kepercayaan', label: 'Kepercayaan', c: '#9b6bd6' },
+            { id: 'waktu', label: 'Waktu Bareng', c: '#ff9a4d' },
+            { id: 'batasan', label: 'Batasan & Ruang', c: '#3fbf8f' },
+            { id: 'dukungan', label: 'Dukungan', c: '#4d9aff' },
+            { id: 'receh', label: 'Receh & Gemas', c: '#ff5c8a' }
+        ];
+        const RULE_CAT_MAP = Object.fromEntries(RULE_CATEGORIES.map(c => [c.id, c]));
 
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'gl-rules-input';
-            input.placeholder = 'Contoh: Nggak boleh bohong satu sama lain...';
-            input.value = value || '';
-            input.addEventListener('input', () => {
-                if (rulesWarning.classList.contains('visible')) rulesWarning.classList.remove('visible');
-            });
+        const RULE_SUGGESTIONS = {
+            komunikasi: [
+                'Kalau ada yang mengganjal, ngomong langsung, jangan dipendam',
+                'Boleh diam buat mikir, tapi jangan menghilang tanpa kabar',
+                'Nggak silent treatment kalau lagi kesal',
+                'Kalau lagi berantem, no drama di depan orang lain',
+                'Boleh beda pendapat, tapi dengerin sampai selesai dulu'
+            ],
+            kepercayaan: [
+                'Nggak intip HP tanpa izin',
+                'Jujur soal circle pertemanan masing-masing',
+                'Kalau curiga, tanya baik-baik, bukan investigasi diam-diam',
+                'Kalau janji sesuatu, usahakan ditepati atau kabari lebih awal',
+                'Nggak bandingin pasangan sama mantan atau orang lain'
+            ],
+            waktu: [
+                'Minimal sekali seminggu quality time tanpa gadget',
+                'Ingat tanggal-tanggal penting satu sama lain',
+                'Sesibuk apapun, sempatkan say good morning & good night',
+                'Sesekali coba hal baru berdua, biar nggak monoton',
+                'Kalau salah satu sibuk, boleh reschedule, jangan dibatalin gitu aja'
+            ],
+            batasan: [
+                'Boleh punya me-time dan circle sendiri',
+                'Privasi tetap dihargai walau udah jadian',
+                'Nggak baca chat atau medsos pasangan tanpa izin',
+                'Boleh nolak ajakan kalau lagi nggak sanggup, tanpa merasa bersalah',
+                'Hormatin waktu keluarga dan teman masing-masing'
+            ],
+            dukungan: [
+                'Rayakan pencapaian sekecil apapun',
+                'Dengerin dulu sebelum kasih solusi',
+                'Jadi tim, bukan lawan, waktu ada masalah',
+                'Support mimpi dan tujuan masing-masing',
+                'Bantu tanpa disuruh kalau kelihatan lagi kewalahan'
+            ],
+            receh: [
+                "Wajib bilang 'hati-hati di jalan' tiap kali salah satu pergi",
+                'Pajak gigitan pertama untuk setiap makanan enak',
+                'Wajib lapor kalau sudah sampai rumah',
+                'Dilarang tidur duluan pas lagi berantem',
+                'Selalu peluk kalau lagi pusing'
+            ]
+        };
 
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'gl-rules-remove';
-            removeBtn.title = 'Hapus';
-            removeBtn.textContent = '✕';
-            removeBtn.addEventListener('click', () => {
-                // Minimal selalu ada 1 baris tersisa di form, biar gampang diisi lagi.
-                if (rulesList.children.length > 1) {
-                    row.remove();
-                } else {
-                    input.value = '';
-                }
-            });
+        let rules = [];
+        let rulesNextId = 1;
+        let rulesSelectedCat = RULE_CATEGORIES[0].id;
+        let rulesActiveFilter = 'semua';
+        let rulesToastTimer = null;
 
-            row.appendChild(input);
-            row.appendChild(removeBtn);
-            return row;
+        function seededRotationRules(id) {
+            const x = Math.sin(id * 999.7) * 10000;
+            const frac = x - Math.floor(x);
+            return (frac * 9 - 4.5).toFixed(2);
+        }
+        function seededTapeRotationRules(id) {
+            const x = Math.sin(id * 53.7 + 1) * 10000;
+            const frac = x - Math.floor(x);
+            return (frac * 14 - 7).toFixed(2);
         }
 
-        function getSavedAturan() {
+        function loadRulesFromStorage() {
             try {
                 const raw = localStorage.getItem('galaxilove_aturan');
                 const arr = raw ? JSON.parse(raw) : [];
-                return Array.isArray(arr) ? arr : [];
+                if (!Array.isArray(arr)) return [];
+                // Kompatibel dengan format lama (array string polos)
+                return arr.map((item, i) => {
+                    if (typeof item === 'string') {
+                        return { id: i + 1, text: item, category: RULE_CATEGORIES[0].id };
+                    }
+                    return {
+                        id: item.id || (i + 1),
+                        text: item.text || '',
+                        category: RULE_CAT_MAP[item.category] ? item.category : RULE_CATEGORIES[0].id
+                    };
+                }).filter(r => r.text.trim().length > 0);
             } catch (e) {
                 return [];
             }
         }
 
-        function showRulesEditView(savedAturan) {
-            rulesList.innerHTML = '';
-            if (savedAturan.length > 0) {
-                savedAturan.forEach(v => rulesList.appendChild(makeRuleRow(v)));
-            } else {
-                rulesList.appendChild(makeRuleRow(''));
-            }
-            rulesDisplay.classList.remove('visible');
-            rulesFields.classList.remove('hidden');
+        function saveRulesToStorage() {
+            localStorage.setItem('galaxilove_aturan', JSON.stringify(rules));
         }
 
-        function openRulesModal() {
-            const savedAturan = getSavedAturan();
+        function showRulesToast(msg) {
+            rulesToastEl.textContent = msg;
+            rulesToastEl.classList.add('show');
+            clearTimeout(rulesToastTimer);
+            rulesToastTimer = setTimeout(() => rulesToastEl.classList.remove('show'), 1800);
+        }
 
-            rulesForm.style.display = 'block';
-            rulesCongrats.classList.remove('visible');
-            btnSimpanRules.textContent = 'Simpan';
-            btnSimpanRules.disabled = false;
-            rulesWarning.classList.remove('visible');
-
-            if (savedAturan.length > 0) {
-                // Sudah pernah diisi -> tampil dulu sebagai tampilan tersimpan biasa,
-                // ada tombol Edit yang jelas kalau mau ubah.
-                rulesDisplayList.innerHTML = '';
-                savedAturan.forEach(v => {
-                    const li = document.createElement('li');
-                    li.textContent = v;
-                    rulesDisplayList.appendChild(li);
+        function renderRulesCatChips() {
+            rulesCatChipsEl.innerHTML = '';
+            RULE_CATEGORIES.forEach(cat => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'gl-rules-chip' + (cat.id === rulesSelectedCat ? ' active' : '');
+                chip.style.setProperty('--chip-c', cat.c);
+                chip.textContent = cat.label;
+                chip.addEventListener('click', () => {
+                    rulesSelectedCat = cat.id;
+                    [...rulesCatChipsEl.children].forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
                 });
-                rulesDisplay.classList.add('visible');
-                rulesFields.classList.add('hidden');
-            } else {
-                // Belum pernah diisi -> langsung tampil form buat isi
-                showRulesEditView(savedAturan);
+                rulesCatChipsEl.appendChild(chip);
+            });
+        }
+
+        function renderRulesSuggestions() {
+            rulesSuggGroupsEl.innerHTML = '';
+            RULE_CATEGORIES.forEach(cat => {
+                const group = document.createElement('div');
+                const h4 = document.createElement('h4');
+                h4.style.setProperty('--g-c', cat.c);
+                h4.textContent = cat.label;
+                group.appendChild(h4);
+
+                RULE_SUGGESTIONS[cat.id].forEach(text => {
+                    const already = rules.some(r => r.text === text);
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'gl-rules-sugg-chip';
+                    btn.style.setProperty('--g-c', cat.c);
+                    if (already) btn.disabled = true;
+
+                    const plus = document.createElement('span');
+                    plus.className = 'plus';
+                    plus.textContent = already ? '✓' : '+';
+                    btn.appendChild(plus);
+                    btn.appendChild(document.createTextNode(' ' + text));
+
+                    btn.addEventListener('click', () => addRuleToBoard(text, cat.id));
+                    group.appendChild(btn);
+                });
+                rulesSuggGroupsEl.appendChild(group);
+            });
+        }
+
+        function renderRulesFilterRow() {
+            rulesFilterRowEl.innerHTML = '';
+            const allChip = document.createElement('button');
+            allChip.type = 'button';
+            allChip.className = 'gl-rules-chip' + (rulesActiveFilter === 'semua' ? ' active' : '');
+            allChip.textContent = 'Semua';
+            allChip.addEventListener('click', () => { rulesActiveFilter = 'semua'; renderRulesAll(); });
+            rulesFilterRowEl.appendChild(allChip);
+
+            RULE_CATEGORIES.forEach(cat => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'gl-rules-chip' + (rulesActiveFilter === cat.id ? ' active' : '');
+                chip.style.setProperty('--chip-c', cat.c);
+                chip.textContent = cat.label;
+                chip.addEventListener('click', () => { rulesActiveFilter = cat.id; renderRulesAll(); });
+                rulesFilterRowEl.appendChild(chip);
+            });
+
+            const count = document.createElement('span');
+            count.className = 'count';
+            count.textContent = rules.length + ' aturan';
+            rulesFilterRowEl.appendChild(count);
+        }
+
+        function renderRulesBoard() {
+            rulesBoardEl.innerHTML = '';
+            const visible = rulesActiveFilter === 'semua' ? rules : rules.filter(r => r.category === rulesActiveFilter);
+
+            if (visible.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'gl-rules-empty';
+                empty.innerHTML = '<span class="em">🎀</span>' + (rules.length === 0
+                    ? 'Papan masih kosong. Tulis atau pilih ide di atas, yuk 💌'
+                    : 'Belum ada aturan di kategori ini.');
+                rulesBoardEl.appendChild(empty);
+                return;
             }
+
+            visible.forEach(rule => {
+                const cat = RULE_CAT_MAP[rule.category] || RULE_CATEGORIES[0];
+                const card = document.createElement('div');
+                card.className = 'gl-rules-card';
+                card.style.transform = 'rotate(' + seededRotationRules(rule.id) + 'deg)';
+
+                const tape = document.createElement('div');
+                tape.className = 'gl-rules-tape';
+                tape.style.setProperty('--tape-c', cat.c);
+                tape.style.setProperty('--tape-rot', seededTapeRotationRules(rule.id) + 'deg');
+                card.appendChild(tape);
+
+                const del = document.createElement('button');
+                del.type = 'button';
+                del.className = 'del';
+                del.setAttribute('aria-label', 'Hapus aturan ini');
+                del.textContent = '✕';
+                del.addEventListener('click', () => {
+                    rules = rules.filter(r => r.id !== rule.id);
+                    saveRulesToStorage();
+                    renderRulesAll();
+                });
+                card.appendChild(del);
+
+                const label = document.createElement('span');
+                label.className = 'cat-label';
+                label.style.setProperty('--cat-c', cat.c);
+                label.textContent = cat.label;
+                card.appendChild(label);
+
+                const p = document.createElement('p');
+                p.textContent = rule.text;
+                card.appendChild(p);
+
+                rulesBoardEl.appendChild(card);
+            });
+        }
+
+        function renderRulesAll() {
+            renderRulesBoard();
+            renderRulesFilterRow();
+            renderRulesSuggestions();
+        }
+
+        function addRuleToBoard(text, categoryId) {
+            const clean = text.trim();
+            if (!clean) return;
+            rules.push({ id: rulesNextId++, text: clean, category: categoryId });
+            saveRulesToStorage();
+            renderRulesAll();
+            showRulesToast('Aturan ditempel ✨');
+        }
+
+        rulesInput.addEventListener('input', () => {
+            rulesCharCount.textContent = rulesInput.value.length + '/140';
+        });
+        rulesInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                rulesAddBtn.click();
+            }
+        });
+
+        rulesAddBtn.addEventListener('click', () => {
+            if (!rulesInput.value.trim()) {
+                rulesInput.focus();
+                return;
+            }
+            addRuleToBoard(rulesInput.value, rulesSelectedCat);
+            rulesInput.value = '';
+            rulesCharCount.textContent = '0/140';
+        });
+
+        rulesResetBtn.addEventListener('click', () => {
+            if (rules.length === 0) return;
+            if (confirm('Kosongkan semua aturan di papan?')) {
+                rules = [];
+                saveRulesToStorage();
+                renderRulesAll();
+                showRulesToast('Papan sudah bersih');
+            }
+        });
+
+        rulesCopyBtn.addEventListener('click', async () => {
+            if (rules.length === 0) { showRulesToast('Belum ada aturan untuk disalin'); return; }
+            let text = 'Aturan Buat Kita 📜\n\n';
+            RULE_CATEGORIES.forEach(cat => {
+                const items = rules.filter(r => r.category === cat.id);
+                if (items.length === 0) return;
+                text += cat.label + '\n';
+                items.forEach(r => { text += '- ' + r.text + '\n'; });
+                text += '\n';
+            });
+            try {
+                await navigator.clipboard.writeText(text.trim());
+                showRulesToast('Tersalin ke clipboard 📋');
+            } catch (e) {
+                showRulesToast('Gagal menyalin, coba lagi ya');
+            }
+        });
+
+        function openRulesModal() {
+            rules = loadRulesFromStorage();
+            rulesNextId = rules.reduce((m, r) => Math.max(m, r.id), 0) + 1;
+            rulesActiveFilter = 'semua';
+            rulesSelectedCat = RULE_CATEGORIES[0].id;
+            rulesInput.value = '';
+            rulesCharCount.textContent = '0/140';
+
+            renderRulesCatChips();
+            renderRulesAll();
 
             rulesModal.classList.add('visible');
         }
 
-        rulesEditBtn.addEventListener('click', () => {
-            showRulesEditView(getSavedAturan());
-        });
-
-        rulesAddBtn.addEventListener('click', () => {
-            rulesList.appendChild(makeRuleRow(''));
-            const lastInput = rulesList.lastElementChild.querySelector('input');
-            if (lastInput) lastInput.focus();
-        });
-
         function closeRulesModal() {
             rulesModal.classList.remove('visible');
-            if (rulesCongratsTimeout) {
-                clearTimeout(rulesCongratsTimeout);
-                rulesCongratsTimeout = null;
-            }
         }
 
         rulesCloseBtn.addEventListener('click', closeRulesModal);
-
-        btnSimpanRules.addEventListener('click', () => {
-            const inputs = Array.from(rulesList.querySelectorAll('.gl-rules-input'));
-            const filled = inputs.map(i => i.value.trim()).filter(v => v.length > 0);
-
-            if (filled.length < 1) {
-                rulesWarning.classList.add('visible');
-                return;
-            }
-            rulesWarning.classList.remove('visible');
-
-            localStorage.setItem('galaxilove_aturan', JSON.stringify(filled));
-
-            btnSimpanRules.textContent = 'Tersimpan ✓';
-            btnSimpanRules.disabled = true;
-
-            setTimeout(() => {
-                rulesForm.style.display = 'none';
-                rulesCongrats.classList.add('visible');
-
-                rulesCongratsTimeout = setTimeout(() => {
-                    closeRulesModal();
-                }, 3500);
-            }, 500);
-        });
 
         const ORBIT_SYNC_SPEED = 0.003;
 
