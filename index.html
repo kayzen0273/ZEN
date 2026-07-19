@@ -602,6 +602,7 @@
             text-align: left;
         }
         #gl-modal-rules .rules-card h3 { text-align: center; }
+        .gl-rules-hidden { display: none !important; }
         .gl-rules-intro {
             font-family: Arial, sans-serif;
             font-size: 0.85rem;
@@ -1043,9 +1044,9 @@
                 <button id="gl-rules-close" title="Tutup">✕</button>
 
                 <h3>Aturan Buat Kita 📜</h3>
-                <p class="gl-rules-intro">Tempel aturan kalian di sini kayak mading berdua. Tulis sendiri, atau ambil dari ide di bawah.</p>
+                <p class="gl-rules-intro" id="gl-rules-intro-text">Tempel aturan kalian di sini kayak mading berdua. Tulis sendiri, atau ambil dari ide di bawah.</p>
 
-                <div class="gl-rules-composer">
+                <div class="gl-rules-composer" id="gl-rules-composer-wrap">
                     <textarea id="gl-rules-input" maxlength="140" placeholder="Contoh: wajib bilang 'hati-hati di jalan' setiap kali salah satu pergi"></textarea>
                     <div class="gl-rules-chip-row" id="gl-rules-cat-chips"></div>
                     <div class="gl-rules-composer-footer">
@@ -1054,7 +1055,7 @@
                     </div>
                 </div>
 
-                <details class="gl-rules-idea-box">
+                <details class="gl-rules-idea-box" id="gl-rules-idea-wrap">
                     <summary>Butuh ide? 💡</summary>
                     <div class="gl-rules-sugg-groups" id="gl-rules-sugg-groups"></div>
                 </details>
@@ -1062,12 +1063,17 @@
                 <div class="gl-rules-filter-row" id="gl-rules-filter-row"></div>
                 <div class="gl-rules-board" id="gl-rules-board"></div>
 
-                <div class="gl-rules-footer-actions">
+                <div class="gl-rules-footer-actions" id="gl-rules-footer-view">
+                    <button class="gl-rules-btn" id="gl-rules-edit-btn" type="button">✏️ Edit Papan</button>
+                </div>
+                <div class="gl-rules-footer-actions gl-rules-hidden" id="gl-rules-footer-edit">
                     <button class="gl-rules-btn ghost small" id="gl-rules-copy-btn" type="button">Salin sebagai teks</button>
                     <button class="gl-rules-btn ghost small" id="gl-rules-reset-btn" type="button">Kosongkan papan</button>
+                    <button class="gl-rules-btn small" id="gl-rules-done-btn" type="button">✓ Selesai</button>
                 </div>
             </div>
         </div>
+
         <div class="gl-rules-toast" id="gl-rules-toast"></div>
 
         <audio id="gl-musica-fondo" loop>
@@ -2059,6 +2065,15 @@
         const rulesCopyBtn = document.getElementById('gl-rules-copy-btn');
         const rulesResetBtn = document.getElementById('gl-rules-reset-btn');
         const rulesToastEl = document.getElementById('gl-rules-toast');
+        const rulesIntroText = document.getElementById('gl-rules-intro-text');
+        const rulesComposerWrap = document.getElementById('gl-rules-composer-wrap');
+        const rulesIdeaWrap = document.getElementById('gl-rules-idea-wrap');
+        const rulesFooterView = document.getElementById('gl-rules-footer-view');
+        const rulesFooterEdit = document.getElementById('gl-rules-footer-edit');
+        const rulesEditBtn = document.getElementById('gl-rules-edit-btn');
+        const rulesDoneBtn = document.getElementById('gl-rules-done-btn');
+        const RULES_INTRO_EDIT = "Tempel aturan kalian di sini kayak mading berdua. Tulis sendiri, atau ambil dari ide di bawah.";
+        const RULES_INTRO_VIEW = "Ini papan aturan kalian yang sudah ditempel bareng.";
 
         const RULE_CATEGORIES = [
             { id: 'komunikasi', label: 'Komunikasi', c: '#ff4da6' },
@@ -2120,6 +2135,7 @@
         let rulesSelectedCat = RULE_CATEGORIES[0].id;
         let rulesActiveFilter = 'semua';
         let rulesToastTimer = null;
+        let rulesMode = 'view';
 
         function seededRotationRules(id) {
             const x = Math.sin(id * 999.7) * 10000;
@@ -2262,17 +2278,19 @@
                 tape.style.setProperty('--tape-rot', seededTapeRotationRules(rule.id) + 'deg');
                 card.appendChild(tape);
 
-                const del = document.createElement('button');
-                del.type = 'button';
-                del.className = 'del';
-                del.setAttribute('aria-label', 'Hapus aturan ini');
-                del.textContent = '✕';
-                del.addEventListener('click', () => {
-                    rules = rules.filter(r => r.id !== rule.id);
-                    saveRulesToStorage();
-                    renderRulesAll();
-                });
-                card.appendChild(del);
+                if (rulesMode === 'edit') {
+                    const del = document.createElement('button');
+                    del.type = 'button';
+                    del.className = 'del';
+                    del.setAttribute('aria-label', 'Hapus aturan ini');
+                    del.textContent = '✕';
+                    del.addEventListener('click', () => {
+                        rules = rules.filter(r => r.id !== rule.id);
+                        saveRulesToStorage();
+                        renderRulesAll();
+                    });
+                    card.appendChild(del);
+                }
 
                 const label = document.createElement('span');
                 label.className = 'cat-label';
@@ -2350,6 +2368,33 @@
             }
         });
 
+        function applyRulesModeUI() {
+            const editing = rulesMode === 'edit';
+            rulesComposerWrap.classList.toggle('gl-rules-hidden', !editing);
+            rulesIdeaWrap.classList.toggle('gl-rules-hidden', !editing);
+            rulesFooterView.classList.toggle('gl-rules-hidden', editing);
+            rulesFooterEdit.classList.toggle('gl-rules-hidden', !editing);
+            rulesIntroText.textContent = editing ? RULES_INTRO_EDIT : RULES_INTRO_VIEW;
+        }
+
+        function setRulesMode(mode) {
+            rulesMode = mode;
+            applyRulesModeUI();
+            renderRulesBoard();
+        }
+
+        rulesEditBtn.addEventListener('click', () => {
+            setRulesMode('edit');
+        });
+
+        rulesDoneBtn.addEventListener('click', () => {
+            if (rules.length === 0) {
+                showRulesToast('Tempel minimal 1 aturan dulu ya 💕');
+                return;
+            }
+            setRulesMode('view');
+        });
+
         function openRulesModal() {
             rules = loadRulesFromStorage();
             rulesNextId = rules.reduce((m, r) => Math.max(m, r.id), 0) + 1;
@@ -2357,6 +2402,11 @@
             rulesSelectedCat = RULE_CATEGORIES[0].id;
             rulesInput.value = '';
             rulesCharCount.textContent = '0/140';
+
+            // Kalau sudah pernah ada aturan tersimpan, langsung tampil sebagai papan
+            // hasil (read-only) dulu. Mode edit baru dibuka lewat tombol "Edit Papan".
+            rulesMode = rules.length > 0 ? 'view' : 'edit';
+            applyRulesModeUI();
 
             renderRulesCatChips();
             renderRulesAll();
