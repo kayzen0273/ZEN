@@ -565,6 +565,12 @@
             background: #fff;
             min-height: 1.3em;
         }
+        #gl-date-btn-row {
+            margin-top: 6px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
         #gl-btn-simpan-date, #gl-btn-simpan-rules {
             margin-top: 6px;
             border: none;
@@ -577,6 +583,20 @@
             cursor: pointer;
             font-family: Arial, sans-serif;
         }
+        #gl-date-btn-row #gl-btn-simpan-date { margin-top: 0; }
+        #gl-btn-hapus-date {
+            margin-top: 0;
+            border: 2px solid #ff4da6;
+            border-radius: 999px;
+            background: #fff;
+            color: #ff4da6;
+            font-size: 0.95rem;
+            font-weight: bold;
+            padding: 8px 24px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+        }
+        #gl-btn-hapus-date:hover { background: #ffe6f2; }
         #gl-btn-simpan-date:disabled, #gl-btn-simpan-rules:disabled {
             opacity: 0.7;
             cursor: default;
@@ -1027,7 +1047,10 @@
                             <label for="gl-input-jam">Jam Jadian</label>
                             <input type="time" id="gl-input-jam">
                         </div>
-                        <button id="gl-btn-simpan-date">Simpan</button>
+                        <div id="gl-date-btn-row">
+                            <button id="gl-btn-simpan-date">Simpan</button>
+                            <button id="gl-btn-hapus-date" type="button">Hapus</button>
+                        </div>
                     </div>
                 </div>
 
@@ -2031,11 +2054,10 @@
 
         dateCloseBtn.addEventListener('click', closeDateModal);
 
+        const btnHapusDate = document.getElementById('gl-btn-hapus-date');
+
         btnSimpanDate.addEventListener('click', () => {
-            if (!inputTanggal.value) {
-                inputTanggal.focus();
-                return;
-            }
+            // Sekarang boleh disimpan walau kosong (misalnya setelah dihapus)
             localStorage.setItem('galaxilove_tanggalJadian', inputTanggal.value);
             localStorage.setItem('galaxilove_jamJadian', inputJam.value);
 
@@ -2050,6 +2072,29 @@
                     closeDateModal();
                 }, 3500);
             }, 500);
+        });
+
+        // Tombol "Hapus" -> mengosongkan tanggal & jam jadian yang tersimpan,
+        // lalu membuka kembali form kosong supaya bisa diisi ulang atau dibiarkan kosong.
+        btnHapusDate.addEventListener('click', () => {
+            localStorage.removeItem('galaxilove_tanggalJadian');
+            localStorage.removeItem('galaxilove_jamJadian');
+
+            inputTanggal.value = '';
+            inputJam.value = '';
+
+            dateDisplay.classList.remove('visible');
+            dateFields.classList.remove('hidden');
+            dateForm.style.display = 'block';
+            dateCongrats.classList.remove('visible');
+
+            btnSimpanDate.textContent = 'Simpan';
+            btnSimpanDate.disabled = false;
+
+            if (dateCongratsTimeout) {
+                clearTimeout(dateCongratsTimeout);
+                dateCongratsTimeout = null;
+            }
         });
 
         // ===== Modal "Aturan Buat Kita" - papan mading berdua (kategori + ide + kartu tertempel) =====
