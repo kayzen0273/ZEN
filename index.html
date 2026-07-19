@@ -913,6 +913,85 @@
             padding: 12px 20px;
             min-height: 1.2em;
         }
+        #gl-menu-btn-lanjut {
+            display: block;
+            width: 100%;
+            margin-top: 18px;
+            border: none;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #b06bff 0%, #ff4da6 100%);
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: bold;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+        }
+
+        #gl-modal-plan {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+        }
+        #gl-modal-plan.visible { display: flex; }
+        #gl-modal-plan .plan-card {
+            width: min(88vw, 420px);
+            background: linear-gradient(160deg, #f5f0ff 0%, #ffe0ef 100%);
+            border: 2px solid #d9b3ff;
+            border-radius: 20px;
+            padding: 30px 22px 24px;
+            box-shadow: 0 14px 40px rgba(155, 60, 220, 0.4);
+            color: #5a2a7a;
+            font-family: 'Georgia', serif;
+            text-align: center;
+            position: relative;
+            animation: cartaAparece 0.3s ease-out;
+        }
+        #gl-plan-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(176, 107, 255, 0.85);
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        #gl-plan-icon { font-size: 2.2rem; margin-bottom: 8px; }
+        #gl-modal-plan h3 {
+            font-size: 1.2rem;
+            margin: 4px 0 14px;
+            color: #7a2ea8;
+        }
+        #gl-plan-text {
+            font-size: 0.95rem;
+            line-height: 1.55;
+            margin: 0 0 20px;
+            color: #5a2a7a;
+        }
+        #gl-plan-link-btn {
+            display: inline-block;
+            border: none;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #b06bff 0%, #ff4da6 100%);
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: bold;
+            padding: 12px 26px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -981,6 +1060,18 @@
                     <button class="gl-menu-option" id="gl-menu-opt-date">Tanggal Jadian & Jam 💕</button>
                     <button class="gl-menu-option" id="gl-menu-opt-rules">Aturan Buat Kita 📜</button>
                 </div>
+                <button id="gl-menu-btn-lanjut" title="Lanjut">Lanjut ➜</button>
+            </div>
+        </div>
+
+        <!-- ===== Modal "Lanjut Rancang" - kata pengantar menuju halaman kisah/jadwal/wishlist ===== -->
+        <div id="gl-modal-plan">
+            <div class="plan-card">
+                <button id="gl-plan-close" title="Tutup">✕</button>
+                <div id="gl-plan-icon">🌌💫</div>
+                <h3>Lanjut Rancang Bareng, Yuk 💕</h3>
+                <p id="gl-plan-text">Ini baru permulaan dari cerita kita berdua. Yuk lanjut rangkai kisah, susun jadwal, sampai bikin wishlist kalian sendiri di halaman spesial ini 🥰</p>
+                <a id="gl-plan-link-btn" href="https://planandwishsely.vercel.app/" target="_blank" rel="noopener noreferrer">Buka Halamannya ➜</a>
             </div>
         </div>
 
@@ -1878,6 +1969,23 @@
             closeMenuModal();
             openRulesModal();
         });
+
+        // ===== Modal "Lanjut Rancang" (kisah / jadwal / wishlist) =====
+        const planModal = document.getElementById('gl-modal-plan');
+        const planCloseBtn = document.getElementById('gl-plan-close');
+        const menuBtnLanjut = document.getElementById('gl-menu-btn-lanjut');
+
+        function openPlanModal() {
+            planModal.classList.add('visible');
+        }
+        function closePlanModal() {
+            planModal.classList.remove('visible');
+        }
+        menuBtnLanjut.addEventListener('click', () => {
+            closeMenuModal();
+            openPlanModal();
+        });
+        planCloseBtn.addEventListener('click', closePlanModal);
 
         // ===== Modal "Upgrade Panggilan Spesial" =====
         const nicknameModal = document.getElementById('gl-modal-nickname');
