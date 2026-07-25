@@ -363,7 +363,7 @@
             border-radius: 999px;
             width: 32px;
             height: 32px;
-            font-size: 16px;
+            font-size: 22px;
             font-weight: bold;
             cursor: pointer;
             line-height: 1;
@@ -499,7 +499,7 @@
             border-radius: 999px;
             width: 32px;
             height: 32px;
-            font-size: 16px;
+            font-size: 22px;
             font-weight: bold;
             cursor: pointer;
             line-height: 1;
@@ -1078,7 +1078,7 @@
         <!-- ===== Modal "Upgrade Panggilan Spesial" - muncul saat opsi menu dipilih ===== -->
         <div id="gl-modal-nickname">
             <div class="nickname-card">
-                <button id="gl-nickname-close" title="Tutup">✕</button>
+                <button id="gl-nickname-close" title="Kembali">‹</button>
 
                 <div id="gl-nickname-form">
                     <h3>Upgrade Panggilan Spesial 💕</h3>
@@ -1117,7 +1117,7 @@
         <!-- ===== Modal "Tanggal Jadian & Jam" - muncul saat opsi menu dipilih ===== -->
         <div id="gl-modal-date">
             <div class="date-card">
-                <button id="gl-date-close" title="Tutup">✕</button>
+                <button id="gl-date-close" title="Kembali">‹</button>
 
                 <div id="gl-date-form">
                     <h3>Tanggal Jadian & Jam 💕</h3>
@@ -1155,7 +1155,7 @@
         <!-- ===== Modal "Aturan Buat Kita" - papan mading berdua, bisa tempel banyak aturan berkategori ===== -->
         <div id="gl-modal-rules">
             <div class="rules-card">
-                <button id="gl-rules-close" title="Tutup">✕</button>
+                <button id="gl-rules-close" title="Kembali">‹</button>
 
                 <h3>Aturan Buat Kita 📜</h3>
                 <p class="gl-rules-intro" id="gl-rules-intro-text">Tempel aturan kalian di sini kayak mading berdua. Tulis sendiri, atau ambil dari ide di bawah.</p>
@@ -2058,7 +2058,10 @@
             }
         }
 
-        nicknameCloseBtn.addEventListener('click', closeNicknameModal);
+        nicknameCloseBtn.addEventListener('click', () => {
+            closeNicknameModal();
+            openMenuModal();
+        });
 
         btnSimpanNickname.addEventListener('click', () => {
             localStorage.setItem('galaxilove_mbg', inputMbg.value);
@@ -2074,8 +2077,10 @@
                 // Modal ditutup sendiri setelah beberapa detik, TAPI overlay & kamera
                 // TIDAK ikut ditutup di sini. Kamera baru menyala lagi kalau tombol
                 // ✕ di halaman (gl-page-close-btn) yang diklik, bukan otomatis.
+                // Setelah pesan sukses tampil, otomatis balik ke halaman menu utama.
                 nicknameCongratsTimeout = setTimeout(() => {
                     closeNicknameModal();
+                    openMenuModal();
                 }, 3500);
             }, 500);
         });
@@ -2160,7 +2165,10 @@
             }
         }
 
-        dateCloseBtn.addEventListener('click', closeDateModal);
+        dateCloseBtn.addEventListener('click', () => {
+            closeDateModal();
+            openMenuModal();
+        });
 
         const btnHapusDate = document.getElementById('gl-btn-hapus-date');
 
@@ -2178,6 +2186,7 @@
 
                 dateCongratsTimeout = setTimeout(() => {
                     closeDateModal();
+                    openMenuModal();
                 }, 3500);
             }, 500);
         });
@@ -2586,7 +2595,10 @@
             rulesModal.classList.remove('visible');
         }
 
-        rulesCloseBtn.addEventListener('click', closeRulesModal);
+        rulesCloseBtn.addEventListener('click', () => {
+            closeRulesModal();
+            openMenuModal();
+        });
 
         const ORBIT_SYNC_SPEED = 0.003;
 
