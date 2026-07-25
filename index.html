@@ -98,6 +98,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ===== Overlay Galaksi Cinta (dibuka/ditutup dengan gestur 👌) ===== */
         #galaxilove-overlay {
@@ -1929,6 +1930,112 @@
         let active = false;
         let animationId = null;
 
+        // ===== Supabase =====
+        const SUPABASE_URL = 'https://mgobeouuzipvdcfddrly.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1nb2Jlb3V1emlwdmRjZmRkcmx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5NjczMjQsImV4cCI6MjEwMDU0MzMyNH0.l5Qga49EI5Mnv4JPQM4R-Kirlo2ye1OUc8wstj-VM6U';
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Ambil beberapa "setting" (key-value) sekaligus dari tabel galaxilove_settings.
+        // Mengembalikan object { key: value }. Kalau gagal/tidak ada, key tidak akan muncul.
+        async function sbGetSettings(keys) {
+            try {
+                const { data, error } = await sb
+                    .from('galaxilove_settings')
+                    .select('key, value')
+                    .in('key', keys);
+                if (error) { console.error('Supabase get settings error:', error); return {}; }
+                const map = {};
+                (data || []).forEach(row => { map[row.key] = row.value; });
+                return map;
+            } catch (e) {
+                console.error('Supabase get settings exception:', e);
+                return {};
+            }
+        }
+
+        // Simpan beberapa "setting" (key-value) sekaligus ke tabel galaxilove_settings.
+        // pairs berbentuk { key: value, ... }. Mengembalikan true kalau berhasil.
+        async function sbSetSettings(pairs) {
+            try {
+                const rows = Object.entries(pairs).map(([key, value]) => ({
+                    key, value, updated_at: new Date().toISOString()
+                }));
+                const { error } = await sb.from('galaxilove_settings').upsert(rows);
+                if (error) { console.error('Supabase set settings error:', error); return false; }
+                return true;
+            } catch (e) {
+                console.error('Supabase set settings exception:', e);
+                return false;
+            }
+        }
+
+        // Hapus beberapa "setting" sekaligus dari tabel galaxilove_settings.
+        async function sbDeleteSettings(keys) {
+            try {
+                const { error } = await sb.from('galaxilove_settings').delete().in('key', keys);
+                if (error) console.error('Supabase delete settings error:', error);
+                return !error;
+            } catch (e) {
+                console.error('Supabase delete settings exception:', e);
+                return false;
+            }
+        }
+
+        // Ambil semua aturan dari tabel galaxilove_rules, urut dari yang paling lama ditempel.
+        async function sbLoadRules() {
+            try {
+                const { data, error } = await sb
+                    .from('galaxilove_rules')
+                    .select('id, text, category')
+                    .order('id', { ascending: true });
+                if (error) { console.error('Supabase load rules error:', error); return []; }
+                return data || [];
+            } catch (e) {
+                console.error('Supabase load rules exception:', e);
+                return [];
+            }
+        }
+
+        // Tempel satu aturan baru ke tabel galaxilove_rules. Mengembalikan row hasil insert (dengan id asli dari DB) atau null kalau gagal.
+        async function sbInsertRule(text, category) {
+            try {
+                const { data, error } = await sb
+                    .from('galaxilove_rules')
+                    .insert({ text, category })
+                    .select()
+                    .single();
+                if (error) { console.error('Supabase insert rule error:', error); return null; }
+                return data;
+            } catch (e) {
+                console.error('Supabase insert rule exception:', e);
+                return null;
+            }
+        }
+
+        // Hapus satu aturan berdasarkan id.
+        async function sbDeleteRule(id) {
+            try {
+                const { error } = await sb.from('galaxilove_rules').delete().eq('id', id);
+                if (error) console.error('Supabase delete rule error:', error);
+                return !error;
+            } catch (e) {
+                console.error('Supabase delete rule exception:', e);
+                return false;
+            }
+        }
+
+        // Hapus semua aturan (dipakai tombol "Kosongkan papan").
+        async function sbDeleteAllRules() {
+            try {
+                const { error } = await sb.from('galaxilove_rules').delete().gte('id', 0);
+                if (error) console.error('Supabase delete all rules error:', error);
+                return !error;
+            } catch (e) {
+                console.error('Supabase delete all rules exception:', e);
+                return false;
+            }
+        }
+
         let glScene, glCamera, glRenderer, glControls, glClock;
         let galaxy, heart, heartModel;
         let textoSprites = [], fotoSprites = [];
@@ -2002,9 +2109,10 @@
         const mbgTapTarget = document.getElementById('gl-mbg-tap-target');
         let nicknameCongratsTimeout = null;
 
-        function openNicknameModal() {
-            const savedMbg = localStorage.getItem('galaxilove_mbg') || '';
-            const savedDaftar = localStorage.getItem('galaxilove_daftarPenting') || '';
+        async function openNicknameModal() {
+            const settings = await sbGetSettings(['mbg', 'daftarPenting']);
+            const savedMbg = settings.mbg || '';
+            const savedDaftar = settings.daftarPenting || '';
             inputMbg.value = savedMbg;
             inputDaftar.value = savedDaftar;
 
@@ -2063,12 +2171,18 @@
             openMenuModal();
         });
 
-        btnSimpanNickname.addEventListener('click', () => {
-            localStorage.setItem('galaxilove_mbg', inputMbg.value);
-            localStorage.setItem('galaxilove_daftarPenting', inputDaftar.value);
+        btnSimpanNickname.addEventListener('click', async () => {
+            btnSimpanNickname.textContent = 'Menyimpan...';
+            btnSimpanNickname.disabled = true;
+
+            const ok = await sbSetSettings({ mbg: inputMbg.value, daftarPenting: inputDaftar.value });
+            if (!ok) {
+                btnSimpanNickname.textContent = 'Gagal, coba lagi';
+                btnSimpanNickname.disabled = false;
+                return;
+            }
 
             btnSimpanNickname.textContent = 'Tersimpan ✓';
-            btnSimpanNickname.disabled = true;
 
             setTimeout(() => {
                 nicknameForm.style.display = 'none';
@@ -2110,9 +2224,10 @@
             return jam ? `${formatted}, pukul ${jam}` : formatted;
         }
 
-        function openDateModal() {
-            const savedTanggal = localStorage.getItem('galaxilove_tanggalJadian') || '';
-            const savedJam = localStorage.getItem('galaxilove_jamJadian') || '';
+        async function openDateModal() {
+            const settings = await sbGetSettings(['tanggalJadian', 'jamJadian']);
+            const savedTanggal = settings.tanggalJadian || '';
+            const savedJam = settings.jamJadian || '';
             inputTanggal.value = savedTanggal;
             inputJam.value = savedJam;
 
@@ -2172,13 +2287,19 @@
 
         const btnHapusDate = document.getElementById('gl-btn-hapus-date');
 
-        btnSimpanDate.addEventListener('click', () => {
+        btnSimpanDate.addEventListener('click', async () => {
+            btnSimpanDate.textContent = 'Menyimpan...';
+            btnSimpanDate.disabled = true;
+
             // Sekarang boleh disimpan walau kosong (misalnya setelah dihapus)
-            localStorage.setItem('galaxilove_tanggalJadian', inputTanggal.value);
-            localStorage.setItem('galaxilove_jamJadian', inputJam.value);
+            const ok = await sbSetSettings({ tanggalJadian: inputTanggal.value, jamJadian: inputJam.value });
+            if (!ok) {
+                btnSimpanDate.textContent = 'Gagal, coba lagi';
+                btnSimpanDate.disabled = false;
+                return;
+            }
 
             btnSimpanDate.textContent = 'Tersimpan ✓';
-            btnSimpanDate.disabled = true;
 
             setTimeout(() => {
                 dateForm.style.display = 'none';
@@ -2193,9 +2314,10 @@
 
         // Tombol "Hapus" -> mengosongkan tanggal & jam jadian yang tersimpan,
         // lalu membuka kembali form kosong supaya bisa diisi ulang atau dibiarkan kosong.
-        btnHapusDate.addEventListener('click', () => {
-            localStorage.removeItem('galaxilove_tanggalJadian');
-            localStorage.removeItem('galaxilove_jamJadian');
+        btnHapusDate.addEventListener('click', async () => {
+            btnHapusDate.disabled = true;
+            await sbDeleteSettings(['tanggalJadian', 'jamJadian']);
+            btnHapusDate.disabled = false;
 
             inputTanggal.value = '';
             inputJam.value = '';
@@ -2308,7 +2430,6 @@
         };
 
         let rules = [];
-        let rulesNextId = 1;
         let rulesSelectedCat = RULE_CATEGORIES[0].id;
         let rulesActiveFilter = 'semua';
         let rulesToastTimer = null;
@@ -2323,31 +2444,6 @@
             const x = Math.sin(id * 53.7 + 1) * 10000;
             const frac = x - Math.floor(x);
             return (frac * 14 - 7).toFixed(2);
-        }
-
-        function loadRulesFromStorage() {
-            try {
-                const raw = localStorage.getItem('galaxilove_aturan');
-                const arr = raw ? JSON.parse(raw) : [];
-                if (!Array.isArray(arr)) return [];
-                // Kompatibel dengan format lama (array string polos)
-                return arr.map((item, i) => {
-                    if (typeof item === 'string') {
-                        return { id: i + 1, text: item, category: RULE_CATEGORIES[0].id };
-                    }
-                    return {
-                        id: item.id || (i + 1),
-                        text: item.text || '',
-                        category: RULE_CAT_MAP[item.category] ? item.category : RULE_CATEGORIES[0].id
-                    };
-                }).filter(r => r.text.trim().length > 0);
-            } catch (e) {
-                return [];
-            }
-        }
-
-        function saveRulesToStorage() {
-            localStorage.setItem('galaxilove_aturan', JSON.stringify(rules));
         }
 
         function showRulesToast(msg) {
@@ -2461,9 +2557,10 @@
                     del.className = 'del';
                     del.setAttribute('aria-label', 'Hapus aturan ini');
                     del.textContent = '✕';
-                    del.addEventListener('click', () => {
+                    del.addEventListener('click', async () => {
+                        del.disabled = true;
+                        await sbDeleteRule(rule.id);
                         rules = rules.filter(r => r.id !== rule.id);
-                        saveRulesToStorage();
                         renderRulesAll();
                     });
                     card.appendChild(del);
@@ -2489,11 +2586,17 @@
             renderRulesSuggestions();
         }
 
-        function addRuleToBoard(text, categoryId) {
+        async function addRuleToBoard(text, categoryId) {
             const clean = text.trim();
             if (!clean) return;
-            rules.push({ id: rulesNextId++, text: clean, category: categoryId });
-            saveRulesToStorage();
+            rulesAddBtn.disabled = true;
+            const inserted = await sbInsertRule(clean, categoryId);
+            rulesAddBtn.disabled = false;
+            if (!inserted) {
+                showRulesToast('Gagal menyimpan, coba lagi ya');
+                return;
+            }
+            rules.push({ id: inserted.id, text: inserted.text, category: inserted.category });
             renderRulesAll();
             showRulesToast('Aturan ditempel ✨');
         }
@@ -2517,11 +2620,13 @@
             rulesCharCount.textContent = '0/140';
         });
 
-        rulesResetBtn.addEventListener('click', () => {
+        rulesResetBtn.addEventListener('click', async () => {
             if (rules.length === 0) return;
             if (confirm('Kosongkan semua aturan di papan?')) {
+                rulesResetBtn.disabled = true;
+                await sbDeleteAllRules();
+                rulesResetBtn.disabled = false;
                 rules = [];
-                saveRulesToStorage();
                 renderRulesAll();
                 showRulesToast('Papan sudah bersih');
             }
@@ -2572,9 +2677,11 @@
             setRulesMode('view');
         });
 
-        function openRulesModal() {
-            rules = loadRulesFromStorage();
-            rulesNextId = rules.reduce((m, r) => Math.max(m, r.id), 0) + 1;
+        async function openRulesModal() {
+            rulesBoardEl.innerHTML = '<div class="gl-rules-empty"><span class="em">🎀</span>Memuat papan...</div>';
+            rulesModal.classList.add('visible');
+
+            rules = await sbLoadRules();
             rulesActiveFilter = 'semua';
             rulesSelectedCat = RULE_CATEGORIES[0].id;
             rulesInput.value = '';
@@ -2587,8 +2694,6 @@
 
             renderRulesCatChips();
             renderRulesAll();
-
-            rulesModal.classList.add('visible');
         }
 
         function closeRulesModal() {
