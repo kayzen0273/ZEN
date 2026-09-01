@@ -627,6 +627,56 @@
             background: #fff;
             min-height: 1.3em;
         }
+        #gl-foto-jadian-wrap {
+            display: none;
+            text-align: center;
+            margin-bottom: 14px;
+        }
+        #gl-foto-jadian-wrap.visible { display: block; }
+        #gl-foto-jadian-wrap img {
+            width: 100%;
+            max-height: 220px;
+            object-fit: cover;
+            border-radius: 12px;
+            border: 3px solid #ffc7e4;
+            box-shadow: 0 8px 22px rgba(255, 20, 147, 0.35);
+        }
+        #gl-foto-jadian-wrap p {
+            margin: 8px 0 0;
+            font-family: 'Georgia', serif;
+            font-size: 0.85rem;
+            color: #b01867;
+        }
+        #gl-foto-jadian-preview-wrap {
+            display: none;
+            margin-bottom: 8px;
+        }
+        #gl-foto-jadian-preview-wrap.visible { display: block; }
+        #gl-foto-jadian-preview-wrap img {
+            width: 100%;
+            max-height: 160px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 2px solid #ffc7e4;
+        }
+        #gl-input-foto-jadian {
+            width: 100%;
+            font-family: Arial, sans-serif;
+            font-size: 0.85rem;
+            color: #8a235f;
+            padding: 8px;
+            border: 2px dashed #ffc7e4;
+            border-radius: 10px;
+            background: #fff;
+            box-sizing: border-box;
+        }
+        #gl-foto-jadian-status {
+            margin: 6px 0 0;
+            font-family: Arial, sans-serif;
+            font-size: 0.8rem;
+            color: #b01867;
+            min-height: 1em;
+        }
         #gl-date-btn-row {
             margin-top: 6px;
             display: flex;
@@ -1198,6 +1248,10 @@
                             <span class="gl-date-display-label" id="gl-tanggal-tap-target">Tanggal & Jam Jadian</span>
                             <span class="gl-date-display-value" id="gl-display-tanggaljam"></span>
                         </div>
+                        <div id="gl-foto-jadian-wrap">
+                            <img id="gl-foto-jadian" src="foto_jadian.jpg" alt="Foto Jadian">
+                            <p>📸 hari itu, kita jadian 💕</p>
+                        </div>
                     </div>
 
                     <div id="gl-date-fields">
@@ -1208,6 +1262,14 @@
                         <div class="gl-date-field">
                             <label for="gl-input-jam">Jam Jadian</label>
                             <input type="time" id="gl-input-jam">
+                        </div>
+                        <div class="gl-date-field">
+                            <label for="gl-input-foto-jadian">Foto Jadian</label>
+                            <div id="gl-foto-jadian-preview-wrap">
+                                <img id="gl-foto-jadian-preview" src="" alt="Preview foto jadian">
+                            </div>
+                            <input type="file" id="gl-input-foto-jadian" accept="image/*">
+                            <p id="gl-foto-jadian-status"></p>
                         </div>
                         <div id="gl-date-btn-row">
                             <button id="gl-btn-simpan-date">Simpan</button>
@@ -2284,7 +2346,56 @@
         const dateFields = document.getElementById('gl-date-fields');
         const displayTanggalJam = document.getElementById('gl-display-tanggaljam');
         const tanggalTapTarget = document.getElementById('gl-tanggal-tap-target');
+        const fotoJadianWrap = document.getElementById('gl-foto-jadian-wrap');
+        const fotoJadianImg = document.getElementById('gl-foto-jadian');
+        fotoJadianImg.addEventListener('error', () => fotoJadianWrap.classList.remove('visible'));
         let dateCongratsTimeout = null;
+
+        // ===== Upload Foto Jadian ke Supabase Storage =====
+        const FOTO_JADIAN_BUCKET = 'galaxilove-fotos';
+        const inputFotoJadian = document.getElementById('gl-input-foto-jadian');
+        const fotoJadianPreviewWrap = document.getElementById('gl-foto-jadian-preview-wrap');
+        const fotoJadianPreview = document.getElementById('gl-foto-jadian-preview');
+        const fotoJadianStatus = document.getElementById('gl-foto-jadian-status');
+        let fotoJadianPendingFile = null;
+        let fotoJadianUploadedUrl = '';
+
+        inputFotoJadian.addEventListener('change', () => {
+            const file = inputFotoJadian.files && inputFotoJadian.files[0];
+            if (!file) return;
+            fotoJadianPendingFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                fotoJadianPreview.src = e.target.result;
+                fotoJadianPreviewWrap.classList.add('visible');
+            };
+            reader.readAsDataURL(file);
+            fotoJadianStatus.textContent = 'Foto siap diupload, klik Simpan ya 💕';
+        });
+
+        async function uploadFotoJadianJikaAda() {
+            if (!fotoJadianPendingFile) return true;
+            fotoJadianStatus.textContent = 'Mengupload foto...';
+            try {
+                const ext = fotoJadianPendingFile.name.split('.').pop() || 'jpg';
+                const path = `foto-jadian-${Date.now()}.${ext}`;
+                const { error: upErr } = await sb.storage.from(FOTO_JADIAN_BUCKET).upload(path, fotoJadianPendingFile, { upsert: true });
+                if (upErr) {
+                    console.error('Supabase upload foto jadian error:', upErr);
+                    fotoJadianStatus.textContent = 'Gagal upload foto, coba lagi ya';
+                    return false;
+                }
+                const { data } = sb.storage.from(FOTO_JADIAN_BUCKET).getPublicUrl(path);
+                fotoJadianUploadedUrl = data.publicUrl;
+                fotoJadianPendingFile = null;
+                fotoJadianStatus.textContent = 'Foto berhasil diupload ✓';
+                return true;
+            } catch (e) {
+                console.error('Supabase upload foto jadian exception:', e);
+                fotoJadianStatus.textContent = 'Gagal upload foto, coba lagi ya';
+                return false;
+            }
+        }
 
         function formatTanggalJam(tanggal, jam) {
             if (!tanggal) return '-';
@@ -2298,11 +2409,22 @@
         }
 
         async function openDateModal() {
-            const settings = await sbGetSettings(['tanggalJadian', 'jamJadian']);
+            const settings = await sbGetSettings(['tanggalJadian', 'jamJadian', 'fotoJadianUrl']);
             const savedTanggal = settings.tanggalJadian || '';
             const savedJam = settings.jamJadian || '';
+            const savedFotoUrl = settings.fotoJadianUrl || '';
             inputTanggal.value = savedTanggal;
             inputJam.value = savedJam;
+            fotoJadianUploadedUrl = savedFotoUrl;
+            fotoJadianPendingFile = null;
+            inputFotoJadian.value = '';
+            fotoJadianStatus.textContent = '';
+            if (savedFotoUrl) {
+                fotoJadianPreview.src = savedFotoUrl;
+                fotoJadianPreviewWrap.classList.add('visible');
+            } else {
+                fotoJadianPreviewWrap.classList.remove('visible');
+            }
 
             dateForm.style.display = 'block';
             dateCongrats.classList.remove('visible');
@@ -2315,10 +2437,17 @@
                 displayTanggalJam.textContent = formatTanggalJam(savedTanggal, savedJam);
                 dateDisplay.classList.add('visible');
                 dateFields.classList.add('hidden');
+                if (savedFotoUrl) {
+                    fotoJadianImg.src = savedFotoUrl;
+                    fotoJadianWrap.classList.add('visible');
+                } else {
+                    fotoJadianWrap.classList.remove('visible');
+                }
             } else {
                 // Belum pernah diisi -> langsung bisa isi
                 dateDisplay.classList.remove('visible');
                 dateFields.classList.remove('hidden');
+                fotoJadianWrap.classList.remove('visible');
             }
 
             dateModal.classList.add('visible');
@@ -2327,6 +2456,7 @@
         function unlockDateFields() {
             dateDisplay.classList.remove('visible');
             dateFields.classList.remove('hidden');
+            fotoJadianWrap.classList.remove('visible');
         }
 
         // Rahasia: klik/tap 5x berturut-turut di label buat buka mode edit,
@@ -2364,8 +2494,15 @@
             btnSimpanDate.textContent = 'Menyimpan...';
             btnSimpanDate.disabled = true;
 
+            const uploadOk = await uploadFotoJadianJikaAda();
+            if (!uploadOk) {
+                btnSimpanDate.textContent = 'Simpan';
+                btnSimpanDate.disabled = false;
+                return;
+            }
+
             // Sekarang boleh disimpan walau kosong (misalnya setelah dihapus)
-            const ok = await sbSetSettings({ tanggalJadian: inputTanggal.value, jamJadian: inputJam.value });
+            const ok = await sbSetSettings({ tanggalJadian: inputTanggal.value, jamJadian: inputJam.value, fotoJadianUrl: fotoJadianUploadedUrl });
             if (!ok) {
                 btnSimpanDate.textContent = 'Gagal, coba lagi';
                 btnSimpanDate.disabled = false;
@@ -2389,14 +2526,20 @@
         // lalu membuka kembali form kosong supaya bisa diisi ulang atau dibiarkan kosong.
         btnHapusDate.addEventListener('click', async () => {
             btnHapusDate.disabled = true;
-            await sbDeleteSettings(['tanggalJadian', 'jamJadian']);
+            await sbDeleteSettings(['tanggalJadian', 'jamJadian', 'fotoJadianUrl']);
             btnHapusDate.disabled = false;
 
             inputTanggal.value = '';
             inputJam.value = '';
+            inputFotoJadian.value = '';
+            fotoJadianPendingFile = null;
+            fotoJadianUploadedUrl = '';
+            fotoJadianStatus.textContent = '';
+            fotoJadianPreviewWrap.classList.remove('visible');
 
             dateDisplay.classList.remove('visible');
             dateFields.classList.remove('hidden');
+            fotoJadianWrap.classList.remove('visible');
             dateForm.style.display = 'block';
             dateCongrats.classList.remove('visible');
 
