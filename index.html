@@ -1421,6 +1421,17 @@
         let lastPinkyToggleTime = 0;
         const PINKY_TOGGLE_COOLDOWN = 1500; // ms, biar tidak muncul berkali-kali per detik
 
+        // ===== Penghalus deteksi (biar gestur tidak gampang keliru terbaca gestur lain) =====
+        let fingerHistory = [];               // riwayat status 4 jari (telunjuk-tengah-manis-kelingking) beberapa frame terakhir
+        const FINGER_HISTORY_SIZE = 6;        // makin besar = makin stabil, tapi respon makin agak lambat
+        let distHeartHistory = [];            // riwayat jarak jempol-telunjuk (buat gestur SELY & OK Sign)
+        const DIST_HISTORY_SIZE = 5;
+
+        let candidateMode = 1;
+        let candidateStreak = 0;
+        let stableMode = 1;
+        const MODE_STABILITY_FRAMES = 5;      // gestur baru harus konsisten sekian frame berturut-turut baru dianggap valid
+
         // ==========================================
         // SETUP THREE.JS (RENDERER 3D)
         // ==========================================
@@ -1697,89 +1708,125 @@
         // ==========================================
         // LOGIKA DETEKSI GESTUR - URUTAN DIPERBAIKI
         // ==========================================
+        let okSignStreak = 0;
+        let pinkyStreak = 0;
+        const GESTURE_TRIGGER_FRAMES = 5; // gestur OK/kelingking harus konsisten sekian frame baru dianggap sah
+
         function calculateGestureMode(landmarks) {
             const tips = [8, 12, 16, 20];
             const pips = [6, 10, 14, 18];
-            
-            // Cek status masing-masing 4 jari (Telunjuk, Tengah, Manis, Kelingking)
-            let fingersUp = tips.map((tip, i) => landmarks[tip].y < landmarks[pips[i]].y);
 
-            // 1. Cek Mode SELY 🫰 (Prioritas Pertama)
+            // Status jari mentah frame ini (Telunjuk, Tengah, Manis, Kelingking)
+            const rawFingersUp = tips.map((tip, i) => landmarks[tip].y < landmarks[pips[i]].y);
+
+            // Haluskan dengan voting mayoritas dari beberapa frame terakhir, biar tidak gampang
+            // salah kebaca gestur lain hanya gara-gara satu frame yang goyang/kurang jelas
+            fingerHistory.push(rawFingersUp);
+            if (fingerHistory.length > FINGER_HISTORY_SIZE) fingerHistory.shift();
+            const fingersUp = [0, 1, 2, 3].map(i => {
+                const trueCount = fingerHistory.reduce((acc, arr) => acc + (arr[i] ? 1 : 0), 0);
+                return trueCount > fingerHistory.length / 2;
+            });
+
+            // Jarak jempol-telunjuk, juga dihaluskan (rata-rata beberapa frame) + ambang sedikit
+            // lebih ketat, supaya SELY 🫰 dan OK Sign 👌 tidak gampang ketuker/salah kepicu
             const thumbTip = landmarks[4];
             const indexTip = landmarks[8];
             const dxHeart = thumbTip.x - indexTip.x;
             const dyHeart = thumbTip.y - indexTip.y;
-            const distHeart = Math.sqrt(dxHeart*dxHeart + dyHeart*dyHeart);
-            
-            // Jika Jempol & Telunjuk berdekatan, dan 3 jari lainnya menekuk
-            if (distHeart < 0.08 && !fingersUp[1] && !fingersUp[2] && !fingersUp[3]) {
-                return 5; 
-            }
+            const rawDistHeart = Math.sqrt(dxHeart * dxHeart + dyHeart * dyHeart);
+            distHeartHistory.push(rawDistHeart);
+            if (distHeartHistory.length > DIST_HISTORY_SIZE) distHeartHistory.shift();
+            const distHeart = distHeartHistory.reduce((a, b) => a + b, 0) / distHeartHistory.length;
+            const PINCH_THRESHOLD = 0.065;
 
-            // 2. Cek Mode OK Sign 👌 (Jempol & Telunjuk berdekatan, 3 jari lain berdiri)
-            //    Dipakai untuk toggle overlay "Galaksi Cinta" (buka/tutup dengan gestur yang sama)
-            if (distHeart < 0.08 && fingersUp[1] && fingersUp[2] && fingersUp[3]) {
-                if (!lastOkSignActive && (Date.now() - lastOkToggleTime > OK_TOGGLE_COOLDOWN)) {
-                    if (typeof toggleGalaxiloveOverlay === 'function') toggleGalaxiloveOverlay();
-                    lastOkToggleTime = Date.now();
-                }
-                lastOkSignActive = true;
-                return 1;
-            }
-            lastOkSignActive = false;
+            // ----- Tentukan kandidat gestur mentah (belum ada efek samping dulu) -----
+            let rawMode = 1;
+            let okSignCandidate = false;
+            let pinkyCandidate = false;
 
-            // 2b. Cek Mode Jari Kelingking 🤙 (Hanya kelingking berdiri, jari lain menekuk)
-            //     Dipakai untuk memunculkan pop-up "Aku mau kamu jadi milik aku selamanya"
-            if (!fingersUp[0] && !fingersUp[1] && !fingersUp[2] && fingersUp[3]) {
-                if (!lastPinkyActive && (Date.now() - lastPinkyToggleTime > PINKY_TOGGLE_COOLDOWN)) {
-                    if (typeof showProposalPopup === 'function') showProposalPopup();
-                    lastPinkyToggleTime = Date.now();
-                }
-                lastPinkyActive = true;
-                return 1;
+            // 1. SELY 🫰 - jempol & telunjuk berdekatan, 3 jari lain menekuk
+            if (distHeart < PINCH_THRESHOLD && !fingersUp[1] && !fingersUp[2] && !fingersUp[3]) {
+                rawMode = 5;
             }
-            lastPinkyActive = false;
-
-            // 3. Cek Mode ZEN & CINTA 🤟 (Sign ILY: Jempol + Telunjuk + Kelingking berdiri,
-            //    Tengah & Manis menekuk, dan jempol terentang keluar dari telapak)
-            if (fingersUp[0] && !fingersUp[1] && !fingersUp[2] && fingersUp[3]) {
+            // 2. OK Sign 👌 - jempol & telunjuk berdekatan, 3 jari lain berdiri
+            else if (distHeart < PINCH_THRESHOLD && fingersUp[1] && fingersUp[2] && fingersUp[3]) {
+                okSignCandidate = true;
+            }
+            // 2b. Jari Kelingking 🤙 - hanya kelingking berdiri, jari lain menekuk
+            else if (!fingersUp[0] && !fingersUp[1] && !fingersUp[2] && fingersUp[3]) {
+                pinkyCandidate = true;
+            }
+            // 3 & 4. Jempol + Kelingking berdiri (bedanya dari seberapa jauh jempol terentang)
+            else if (fingersUp[0] && !fingersUp[1] && !fingersUp[2] && fingersUp[3]) {
                 const thumbMcp = landmarks[2];
                 const pinkyMcp = landmarks[17];
                 const dxThumbTip = thumbTip.x - pinkyMcp.x;
                 const dyThumbTip = thumbTip.y - pinkyMcp.y;
-                const distThumbTipPinky = Math.sqrt(dxThumbTip*dxThumbTip + dyThumbTip*dyThumbTip);
+                const distThumbTipPinky = Math.sqrt(dxThumbTip * dxThumbTip + dyThumbTip * dyThumbTip);
                 const dxThumbMcp = thumbMcp.x - pinkyMcp.x;
                 const dyThumbMcp = thumbMcp.y - pinkyMcp.y;
-                const distThumbMcpPinky = Math.sqrt(dxThumbMcp*dxThumbMcp + dyThumbMcp*dyThumbMcp);
+                const distThumbMcpPinky = Math.sqrt(dxThumbMcp * dxThumbMcp + dyThumbMcp * dyThumbMcp);
+                // Jempol terentang menjauh dari telapak (bukan terlipat) -> 🤟, kalau tidak -> 🦋
+                rawMode = (distThumbTipPinky > distThumbMcpPinky * 1.15) ? 9 : 7;
+            }
+            // 5. I LOVE YOU - Telunjuk & Tengah berdiri
+            else if (fingersUp[0] && fingersUp[1] && !fingersUp[2] && !fingersUp[3]) {
+                rawMode = 3;
+            }
+            // 6. GALAKSI SPIRAL - hanya Telunjuk berdiri
+            else if (fingersUp[0] && !fingersUp[1] && !fingersUp[2] && !fingersUp[3]) {
+                rawMode = 2;
+            }
+            // 7. KEPAL - semua jari menekuk
+            else if (!fingersUp[0] && !fingersUp[1] && !fingersUp[2] && !fingersUp[3]) {
+                rawMode = 4;
+            }
+            // 8. Default: KOSMOS
+            else {
+                rawMode = 1;
+            }
 
-                // Jempol terentang menjauh dari telapak (bukan terlipat) -> gestur 🤟
-                if (distThumbTipPinky > distThumbMcpPinky * 1.1) {
-                    return 9;
+            // ----- Gerbang stabilitas untuk mode bentuk (partikel) -----
+            // Mode baru cuma dipakai kalau kebaca konsisten beberapa frame berturut-turut,
+            // jadi kalau cuma sekilas kebaca gestur lain (noise), tampilan tidak ikut lompat.
+            if (rawMode === candidateMode) {
+                candidateStreak++;
+            } else {
+                candidateMode = rawMode;
+                candidateStreak = 1;
+            }
+            if (candidateStreak >= MODE_STABILITY_FRAMES) {
+                stableMode = candidateMode;
+            }
+
+            // ----- OK Sign 👌 (toggle overlay Galaksi Cinta) - dijaga streak sendiri -----
+            if (okSignCandidate) {
+                okSignStreak++;
+                if (!lastOkSignActive && okSignStreak >= GESTURE_TRIGGER_FRAMES && (Date.now() - lastOkToggleTime > OK_TOGGLE_COOLDOWN)) {
+                    if (typeof toggleGalaxiloveOverlay === 'function') toggleGalaxiloveOverlay();
+                    lastOkToggleTime = Date.now();
+                    lastOkSignActive = true;
                 }
+            } else {
+                okSignStreak = 0;
+                lastOkSignActive = false;
             }
 
-            // 4. Cek Mode KUPU-KUPU CANTIK 🦋 (Rock Sign: Telunjuk + Kelingking berdiri, jempol terlipat)
-            if (fingersUp[0] && !fingersUp[1] && !fingersUp[2] && fingersUp[3]) {
-                return 7;
+            // ----- Jari Kelingking 🤙 (munculkan pop-up "milik selamanya") - streak sendiri -----
+            if (pinkyCandidate) {
+                pinkyStreak++;
+                if (!lastPinkyActive && pinkyStreak >= GESTURE_TRIGGER_FRAMES && (Date.now() - lastPinkyToggleTime > PINKY_TOGGLE_COOLDOWN)) {
+                    if (typeof showProposalPopup === 'function') showProposalPopup();
+                    lastPinkyToggleTime = Date.now();
+                    lastPinkyActive = true;
+                }
+            } else {
+                pinkyStreak = 0;
+                lastPinkyActive = false;
             }
 
-            // 5. Cek Mode I LOVE YOU (2 Jari: Telunjuk & Tengah berdiri)
-            if (fingersUp[0] && fingersUp[1] && !fingersUp[2] && !fingersUp[3]) {
-                return 3;
-            }
-
-            // 6. Cek Mode GALAKSI SPIRAL 🌌 (Hanya 1 Jari Telunjuk berdiri)
-            if (fingersUp[0] && !fingersUp[1] && !fingersUp[2] && !fingersUp[3]) {
-                return 2;
-            }
-
-            // 7. Cek Mode KEPAL (Semua ke-4 jari menekuk)
-            if (!fingersUp[0] && !fingersUp[1] && !fingersUp[2] && !fingersUp[3]) {
-                return 4;
-            }
-
-            // 8. Default: KOSMOS (Semua jari terbuka bebas)
-            return 1; 
+            return stableMode;
         }
 
         const videoElement = document.getElementById('camera-feed');
