@@ -28,17 +28,46 @@
             z-index: 2;
             pointer-events: none;
         }
-        #camera-feed {
-            position: absolute;
+        #camera-pip {
+            position: fixed;
             bottom: 20px;
             right: 20px;
-            width: 240px;
-            height: 180px;
-            z-index: 2;
-            border: 2px solid #00ff00;
-            border-radius: 8px;
+            width: 160px;
+            height: 120px;
+            min-width: 90px;
+            min-height: 68px;
+            max-width: 70vw;
+            max-height: 70vh;
+            z-index: 40;
+            border: 2px solid #00ff88;
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: #111;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+            touch-action: none;
+            cursor: grab;
+            user-select: none;
+        }
+        #camera-pip.dragging { cursor: grabbing; }
+        #camera-pip.hidden-pip { display: none; }
+        #camera-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
             transform: scaleX(-1); /* Mirror camera */
-            background-color: #222;
+            pointer-events: none;
+        }
+        #camera-pip-resize {
+            position: absolute;
+            right: 3px;
+            bottom: 3px;
+            width: 20px;
+            height: 20px;
+            cursor: nwse-resize;
+            background: linear-gradient(135deg, transparent 50%, rgba(0, 255, 136, 0.85) 50%);
+            border-radius: 4px;
+            touch-action: none;
         }
         .status-text {
             font-size: 24px;
@@ -1146,7 +1175,10 @@
         <div class="status-text" id="mode-text">MODE: MENCARI TANGAN...</div>
     </div>
     
-    <video id="camera-feed" autoplay playsinline style="display: none;"></video>
+    <div id="camera-pip">
+        <video id="camera-feed" autoplay playsinline muted></video>
+        <div id="camera-pip-resize" title="Geser untuk perbesar/perkecil"></div>
+    </div>
     <div id="canvas-container"></div>
     <div id="love-caption" class="love-caption"></div>
 
@@ -1751,6 +1783,120 @@
         }
 
         const videoElement = document.getElementById('camera-feed');
+        const cameraPip = document.getElementById('camera-pip');
+        const cameraPipResize = document.getElementById('camera-pip-resize');
+
+        // ===== Drag (geser posisi) jendela kamera =====
+        (function setupCameraPipDrag() {
+            let dragging = false;
+            let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+
+            function toLeftTopFromRightBottom() {
+                // Konversi posisi 'right/bottom' awal menjadi 'left/top' supaya bisa digeser bebas
+                const rect = cameraPip.getBoundingClientRect();
+                cameraPip.style.left = rect.left + 'px';
+                cameraPip.style.top = rect.top + 'px';
+                cameraPip.style.right = 'auto';
+                cameraPip.style.bottom = 'auto';
+            }
+
+            function clampPosition() {
+                const rect = cameraPip.getBoundingClientRect();
+                let left = rect.left, top = rect.top;
+                left = Math.max(4, Math.min(left, window.innerWidth - rect.width - 4));
+                top = Math.max(4, Math.min(top, window.innerHeight - rect.height - 4));
+                cameraPip.style.left = left + 'px';
+                cameraPip.style.top = top + 'px';
+            }
+
+            cameraPip.addEventListener('pointerdown', (e) => {
+                if (e.target === cameraPipResize) return; // biar resize handle-nya sendiri yang urus
+                dragging = true;
+                cameraPip.classList.add('dragging');
+                toLeftTopFromRightBottom();
+                startX = e.clientX;
+                startY = e.clientY;
+                startLeft = parseFloat(cameraPip.style.left);
+                startTop = parseFloat(cameraPip.style.top);
+                cameraPip.setPointerCapture(e.pointerId);
+            });
+
+            cameraPip.addEventListener('pointermove', (e) => {
+                if (!dragging) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                cameraPip.style.left = (startLeft + dx) + 'px';
+                cameraPip.style.top = (startTop + dy) + 'px';
+            });
+
+            function endDrag(e) {
+                if (!dragging) return;
+                dragging = false;
+                cameraPip.classList.remove('dragging');
+                clampPosition();
+            }
+            cameraPip.addEventListener('pointerup', endDrag);
+            cameraPip.addEventListener('pointercancel', endDrag);
+
+            window.addEventListener('resize', clampPosition);
+        })();
+
+        // ===== Resize (perbesar/perkecil) lewat handle pojok, plus pinch-to-zoom 2 jari =====
+        (function setupCameraPipResize() {
+            let resizing = false;
+            let startX = 0, startY = 0, startW = 0, startH = 0;
+            const aspect = 160 / 120;
+
+            function applyWidth(newW) {
+                const clampedW = Math.max(90, Math.min(newW, window.innerWidth * 0.7));
+                cameraPip.style.width = clampedW + 'px';
+                cameraPip.style.height = (clampedW / aspect) + 'px';
+            }
+
+            cameraPipResize.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
+                resizing = true;
+                const rect = cameraPip.getBoundingClientRect();
+                startX = e.clientX;
+                startY = e.clientY;
+                startW = rect.width;
+                startH = rect.height;
+                cameraPipResize.setPointerCapture(e.pointerId);
+            });
+
+            cameraPipResize.addEventListener('pointermove', (e) => {
+                if (!resizing) return;
+                const delta = Math.max(e.clientX - startX, e.clientY - startY);
+                applyWidth(startW + delta);
+            });
+
+            function endResize() { resizing = false; }
+            cameraPipResize.addEventListener('pointerup', endResize);
+            cameraPipResize.addEventListener('pointercancel', endResize);
+
+            // Pinch-to-zoom dengan 2 jari langsung di jendela kameranya
+            let pinchStartDist = null;
+            let pinchStartW = null;
+            cameraPip.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    const [t1, t2] = e.touches;
+                    pinchStartDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                    pinchStartW = cameraPip.getBoundingClientRect().width;
+                }
+            }, { passive: true });
+            cameraPip.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2 && pinchStartDist) {
+                    const [t1, t2] = e.touches;
+                    const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                    const scale = dist / pinchStartDist;
+                    applyWidth(pinchStartW * scale);
+                }
+            }, { passive: true });
+            cameraPip.addEventListener('touchend', (e) => {
+                if (e.touches.length < 2) pinchStartDist = null;
+            });
+        })();
+
         const captionEl = document.getElementById('love-caption');
         const loveCaptions = {
             4: "Untuk kamu, dengan sepenuh hati 💖",
@@ -1776,6 +1922,7 @@
                 videoElement.srcObject.getTracks().forEach(track => track.stop());
                 videoElement.srcObject = null;
             }
+            cameraPip.classList.add('hidden-pip');
             const modeTextEl = document.getElementById('mode-text');
             if (modeTextEl) modeTextEl.innerText = 'MODE: KAMERA NONAKTIF (Pop-up terbuka)';
         }
@@ -1785,6 +1932,7 @@
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 360 } });
                 videoElement.srcObject = stream;
                 await videoElement.play();
+                cameraPip.classList.remove('hidden-pip');
             } catch (e) {
                 console.error('Gagal mengaktifkan kembali kamera:', e);
             }
